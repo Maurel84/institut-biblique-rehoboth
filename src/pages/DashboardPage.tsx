@@ -39,8 +39,8 @@ export function DashboardPage() {
     const ayId = year.id;
 
     const [studentsRes, teachersRes, subjectsRes, gradesRes, feesRes, paymentsRes, bookletsRes] = await Promise.all([
-      supabase.from('students').select('id, academic_status').eq('deleted_at', null),
-      supabase.from('teachers').select('id').eq('deleted_at', null),
+      supabase.from('students').select('id, academic_status').is('deleted_at', null),
+      supabase.from('teachers').select('id').is('deleted_at', null),
       supabase.from('subjects').select('id').eq('academic_year_id', ayId),
       supabase.from('grades').select('id, score, status').eq('academic_year_id', ayId),
       supabase.from('student_fee_accounts').select('total_due, total_paid, remaining').eq('academic_year_id', ayId),

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
-import { useCurrentAcademicYear, useLevels, useRoles, useToast } from '../lib/hooks';
+import { useCurrentAcademicYear, useLevels, useRoles, useToast, useSettings } from '../lib/hooks';
 import { Card, PageHeader, LoadingSpinner, Badge, Modal, Select, EmptyState } from '../components/ui';
 import { fullName, formatDate, formatFCFA, CARD_STATUS_LABELS, ACADEMIC_STATUS_LABELS } from '../lib/utils';
 import type { StudentCard, UserProfile } from '../types';
