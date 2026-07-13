@@ -1355,6 +1355,12 @@ export function EnrollmentsPage() {
         expiry_date: year.end_date,
       });
 
+      // 6. Resequence cohort alphabetically by last name
+      await supabase.rpc('resequence_matricules_alphabetically', {
+        target_year_id: year.id,
+        target_level_id: academicForm.level_id
+      });
+
       show('Inscription validée avec succès !', 'success');
       setShowWizard(false);
       loadEnrollments();

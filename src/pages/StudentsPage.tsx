@@ -590,6 +590,12 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
         academic_status: 'actif'
       }).eq('id', student.id);
 
+      // 5. Resequence cohort alphabetically by last name
+      await supabase.rpc('resequence_matricules_alphabetically', {
+        target_year_id: promotionForm.target_year_id,
+        target_level_id: promotionForm.target_level_id
+      });
+
       show('Étudiant promu en classe supérieure avec succès !', 'success');
       setShowPromotionModal(false);
       loadAll();

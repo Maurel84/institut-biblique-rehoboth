@@ -76,3 +76,69 @@ BEGIN
   ORDER BY s.matricule, s.last_name;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Resequence matricules alphabetically for a cohort
+CREATE OR REPLACE FUNCTION resequence_matricules_alphabetically(target_year_id uuid, target_level_id uuid)
+RETURNS void AS $$
+DECLARE
+  start_num integer;
+  level_code_val text;
+  r RECORD;
+  idx integer;
+  new_mat text;
+  seq_str text;
+BEGIN
+  -- Get level code
+  SELECT code INTO level_code_val FROM levels WHERE id = target_level_id;
+  
+  -- Determine the starting sequence for the target year.
+  -- It should be the maximum sequence number used in PREVIOUS academic years for this level + 1.
+  -- If none, default to 1.
+  SELECT COALESCE(MAX(ms.sequence_number), 0) + 1 INTO start_num
+  FROM matricule_sequences ms
+  WHERE ms.level_code = level_code_val
+    AND ms.used_by_student NOT IN (
+      SELECT student_id 
+      FROM enrollments 
+      WHERE academic_year_id = target_year_id 
+        AND level_id = target_level_id
+    );
+
+  -- Loop through all validated enrollments for this year and level sorted alphabetically by student name
+  idx := start_num;
+  FOR r IN 
+    SELECT e.id AS enrollment_id, s.id AS student_id, s.last_name, s.first_name
+    FROM enrollments e
+    JOIN students s ON e.student_id = s.id
+    WHERE e.academic_year_id = target_year_id
+      AND e.level_id = target_level_id
+      AND e.status = 'validated'
+    ORDER BY s.last_name, s.first_name, s.id
+  LOOP
+    seq_str := lpad(idx::text, 4, '0');
+    new_mat := seq_str || '/IBR/' || level_code_val;
+
+    -- Update enrollment
+    UPDATE enrollments 
+    SET enrollment_matricule = new_mat
+    WHERE id = r.enrollment_id;
+
+    -- Update student active matricule and student_number if this is their current level
+    UPDATE students 
+    SET matricule = new_mat,
+        student_number = seq_str
+    WHERE id = r.student_id 
+      AND current_level_id = target_level_id;
+
+    -- Update matricule_sequences
+    DELETE FROM matricule_sequences 
+    WHERE used_by_student = r.student_id 
+      AND level_code = level_code_val;
+
+    INSERT INTO matricule_sequences (sequence_number, level_code, used_by_student, used_at)
+    VALUES (idx, level_code_val, r.student_id, now());
+
+    idx := idx + 1;
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
