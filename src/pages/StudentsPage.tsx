@@ -723,7 +723,7 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
             <button className="btn-secondary flex items-center gap-1 py-2 px-3 text-xs sm:text-sm font-semibold" onClick={handleOpenEditModal}>
               <Edit className="w-4 h-4" /> Modifier profil
             </button>
-            {student.academic_status === 'actif' && (
+            {['actif', 'suspendu', 'preinscrit'].includes(student.academic_status) && (
               <button className="btn-primary flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm font-semibold" onClick={() => setShowPromotionModal(true)}>
                 <ArrowUpRight className="w-4 h-4" /> Promouvoir / Réinscrire
               </button>
