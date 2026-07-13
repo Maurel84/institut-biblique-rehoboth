@@ -52,8 +52,16 @@ DECLARE
   ay_id uuid := (SELECT id FROM academic_years WHERE name = '2025');
   b1_id uuid := (SELECT id FROM levels WHERE code = 'B1');
   b2_id uuid := (SELECT id FROM levels WHERE code = 'B2');
-  m1_b1 uuid, m2_b1 uuid, m3_b1 uuid, m4_b1 uuid, m5_b1 uuid;
-  m1_b2 uuid, m2_b2 uuid, m3_b2 uuid, m4_b2 uuid, m5_b2 uuid;
+  m1_b1 uuid;
+  m2_b1 uuid;
+  m3_b1 uuid;
+  m4_b1 uuid;
+  m5_b1 uuid;
+  m1_b2 uuid;
+  m2_b2 uuid;
+  m3_b2 uuid;
+  m4_b2 uuid;
+  m5_b2 uuid;
   t_assamoi uuid := (SELECT id FROM teachers WHERE last_name = 'ASSAMOI');
   t_atj uuid := (SELECT id FROM teachers WHERE last_name = 'ATJ');
   t_tokpa uuid := (SELECT id FROM teachers WHERE last_name = 'TOKPA');
