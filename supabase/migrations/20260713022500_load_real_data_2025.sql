@@ -51,8 +51,8 @@ SET session_replication_role = 'origin';
 -- 2. ACADEMIC YEARS
 -- ============================================================================
 INSERT INTO academic_years (name, start_date, end_date, status, is_current) VALUES
-  ('2024-2025', '2024-10-01', '2025-07-31', 'closed', false),
-  ('2025-2026', '2025-10-01', '2026-07-31', 'open', true)
+  ('2025', '2024-10-01', '2025-07-31', 'closed', false),
+  ('2026', '2025-10-01', '2026-07-31', 'open', true)
 ON CONFLICT (name) DO NOTHING;
 
 
@@ -73,10 +73,10 @@ ON CONFLICT (code) DO NOTHING;
 -- 4. PROMOTIONS
 -- ============================================================================
 INSERT INTO promotions (name, code, academic_year_id, level_id, program_id) VALUES
-  ('Promotion B1 2024-2025', 'B1-2024', (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B1'), (SELECT id FROM programs WHERE code = 'THEO')),
-  ('Promotion B2 2024-2025', 'B2-2024', (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B2'), (SELECT id FROM programs WHERE code = 'THEO')),
-  ('Promotion B1 2025-2026', 'B1-2025', (SELECT id FROM academic_years WHERE name = '2025-2026'), (SELECT id FROM levels WHERE code = 'B1'), (SELECT id FROM programs WHERE code = 'THEO')),
-  ('Promotion B2 2025-2026', 'B2-2025', (SELECT id FROM academic_years WHERE name = '2025-2026'), (SELECT id FROM levels WHERE code = 'B2'), (SELECT id FROM programs WHERE code = 'THEO'))
+  ('Promotion B1 2025', 'B1-2025', (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B1'), (SELECT id FROM programs WHERE code = 'THEO')),
+  ('Promotion B2 2025', 'B2-2025', (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B2'), (SELECT id FROM programs WHERE code = 'THEO')),
+  ('Promotion B1 2026', 'B1-2026', (SELECT id FROM academic_years WHERE name = '2026'), (SELECT id FROM levels WHERE code = 'B1'), (SELECT id FROM programs WHERE code = 'THEO')),
+  ('Promotion B2 2026', 'B2-2026', (SELECT id FROM academic_years WHERE name = '2026'), (SELECT id FROM levels WHERE code = 'B2'), (SELECT id FROM programs WHERE code = 'THEO'))
 ON CONFLICT (code) DO NOTHING;
 
 
@@ -94,11 +94,11 @@ INSERT INTO teachers (last_name, first_name, title, phone, email, specialty, sta
 
 
 -- ============================================================================
--- 6. MODULES & SUBJECTS (2024-2025)
+-- 6. MODULES & SUBJECTS (2025)
 -- ============================================================================
 DO $$
 DECLARE
-  ay_id uuid := (SELECT id FROM academic_years WHERE name = '2024-2025');
+  ay_id uuid := (SELECT id FROM academic_years WHERE name = '2025');
   b1_id uuid := (SELECT id FROM levels WHERE code = 'B1');
   b2_id uuid := (SELECT id FROM levels WHERE code = 'B2');
   m1_b1 uuid, m2_b1 uuid, m3_b1 uuid, m4_b1 uuid, m5_b1 uuid;
@@ -195,11 +195,7 @@ VALUES
   ('c3100000-0005-4000-8000-000000000005', '0142/IBR/B1', 'M''BETTO LAURE', 'epse TOTTI', 'F', 'Ivoirienne', 'Côte d''Ivoire', 'actif', '2024-10-01', (SELECT id FROM levels WHERE code = 'B1')),
   ('c3100000-0006-4000-8000-000000000006', '0143/IBR/B1', 'KOUAME', 'HI PIERRE PATRICE', 'M', 'Ivoirienne', 'Côte d''Ivoire', 'actif', '2024-10-01', (SELECT id FROM levels WHERE code = 'B1')),
   ('c3100000-0007-4000-8000-000000000007', '0144/IBR/B1', 'SEHI', 'ULRICH', 'M', 'Ivoirienne', 'Côte d''Ivoire', 'actif', '2024-10-01', (SELECT id FROM levels WHERE code = 'B1')),
-  ('c3100000-0008-4000-8000-000000000008', '0145/IBR/B1', 'TOKPA CHEBANIA', 'JEAN EMMANUEL', 'M', 'Ivoirienne', 'Côte d''Ivoire', 'actif', '2024-10-01', (SELECT id FROM levels WHERE code = 'B1'));
-
--- B2 Students
-INSERT INTO students (id, matricule, last_name, first_name, sex, nationality, country, academic_status, first_enrollment_date, current_level_id)
-VALUES
+  ('c3100000-0008-4000-8000-000000000008', '0145/IBR/B1', 'TOKPA CHEBANIA', 'JEAN EMMANUEL', 'M', 'Ivoirienne', 'Côte d''Ivoire', 'actif', '2024-10-01', (SELECT id FROM levels WHERE code = 'B1')),
   ('c3200000-0001-4000-8000-000000000001', '0127/IBR/B2', 'ABLAN', 'MARIE JOSEE', 'F', 'Ivoirienne', 'Côte d''Ivoire', 'actif', '2023-10-01', (SELECT id FROM levels WHERE code = 'B2')),
   ('c3200000-0002-4000-8000-000000000002', '0128/IBR/B2', 'GNAZALE', 'epse AGOHI-N''GUESSAN NADEGE', 'F', 'Ivoirienne', 'Côte d''Ivoire', 'actif', '2023-10-01', (SELECT id FROM levels WHERE code = 'B2')),
   ('c3200000-0003-4000-8000-000000000003', '0129/IBR/B2', 'EBRIN', 'JEAN HENOC', 'M', 'Ivoirienne', 'Côte d''Ivoire', 'actif', '2023-10-01', (SELECT id FROM levels WHERE code = 'B2')),
@@ -231,32 +227,32 @@ INSERT INTO matricule_sequences (sequence_number, level_code, used_by_student, u
 
 
 -- ============================================================================
--- 9. ENROLLMENTS (2024-2025)
+-- 9. ENROLLMENTS (2025)
 -- ============================================================================
 INSERT INTO enrollments (id, student_id, academic_year_id, program_id, level_id, enrollment_type, status, enrollment_date, validated_at)
 VALUES
   -- 1ère Année B1
-  ('e3100000-0001-4000-8000-000000000001', 'c3100000-0001-4000-8000-000000000001', (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B1'), 'inscription', 'validated', '2024-10-01', now()),
-  ('e3100000-0002-4000-8000-000000000002', 'c3100000-0002-4000-8000-000000000002', (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B1'), 'inscription', 'validated', '2024-10-01', now()),
-  ('e3100000-0003-4000-8000-000000000003', 'c3100000-0003-4000-8000-000000000003', (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B1'), 'inscription', 'validated', '2024-10-01', now()),
-  ('e3100000-0004-4000-8000-000000000004', 'c3100000-0004-4000-8000-000000000004', (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B1'), 'inscription', 'validated', '2024-10-01', now()),
-  ('e3100000-0005-4000-8000-000000000005', 'c3100000-0005-4000-8000-000000000005', (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B1'), 'inscription', 'validated', '2024-10-01', now()),
-  ('e3100000-0006-4000-8000-000000000006', 'c3100000-0006-4000-8000-000000000006', (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B1'), 'inscription', 'validated', '2024-10-01', now()),
-  ('e3100000-0007-4000-8000-000000000007', 'c3100000-0007-4000-8000-000000000007', (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B1'), 'inscription', 'validated', '2024-10-01', now()),
-  ('e3100000-0008-4000-8000-000000000008', 'c3100000-0008-4000-8000-000000000008', (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B1'), 'inscription', 'validated', '2024-10-01', now()),
+  ('e3100000-0001-4000-8000-000000000001', 'c3100000-0001-4000-8000-000000000001', (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B1'), 'inscription', 'validated', '2024-10-01', now()),
+  ('e3100000-0002-4000-8000-000000000002', 'c3100000-0002-4000-8000-000000000002', (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B1'), 'inscription', 'validated', '2024-10-01', now()),
+  ('e3100000-0003-4000-8000-000000000003', 'c3100000-0003-4000-8000-000000000003', (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B1'), 'inscription', 'validated', '2024-10-01', now()),
+  ('e3100000-0004-4000-8000-000000000004', 'c3100000-0004-4000-8000-000000000004', (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B1'), 'inscription', 'validated', '2024-10-01', now()),
+  ('e3100000-0005-4000-8000-000000000005', 'c3100000-0005-4000-8000-000000000005', (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B1'), 'inscription', 'validated', '2024-10-01', now()),
+  ('e3100000-0006-4000-8000-000000000006', 'c3100000-0006-4000-8000-000000000006', (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B1'), 'inscription', 'validated', '2024-10-01', now()),
+  ('e3100000-0007-4000-8000-000000000007', 'c3100000-0007-4000-8000-000000000007', (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B1'), 'inscription', 'validated', '2024-10-01', now()),
+  ('e3100000-0008-4000-8000-000000000008', 'c3100000-0008-4000-8000-000000000008', (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B1'), 'inscription', 'validated', '2024-10-01', now()),
 
   -- 2ème Année B2
-  ('e3200000-0001-4000-8000-000000000001', 'c3200000-0001-4000-8000-000000000001', (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B2'), 'reinscription', 'validated', '2024-10-01', now()),
-  ('e3200000-0002-4000-8000-000000000002', 'c3200000-0002-4000-8000-000000000002', (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B2'), 'reinscription', 'validated', '2024-10-01', now()),
-  ('e3200000-0003-4000-8000-000000000003', 'c3200000-0003-4000-8000-000000000003', (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B2'), 'reinscription', 'validated', '2024-10-01', now()),
-  ('e3200000-0004-4000-8000-000000000004', 'c3200000-0004-4000-8000-000000000004', (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B2'), 'reinscription', 'validated', '2024-10-01', now()),
-  ('e3200000-0005-4000-8000-000000000005', 'c3200000-0005-4000-8000-000000000005', (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B2'), 'reinscription', 'validated', '2024-10-01', now()),
-  ('e3200000-0006-4000-8000-000000000006', 'c3200000-0006-4000-8000-000000000006', (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B2'), 'reinscription', 'validated', '2024-10-01', now()),
-  ('e3200000-0007-4000-8000-000000000007', 'c3200000-0007-4000-8000-000000000007', (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B2'), 'reinscription', 'validated', '2024-10-01', now());
+  ('e3200000-0001-4000-8000-000000000001', 'c3200000-0001-4000-8000-000000000001', (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B2'), 'reinscription', 'validated', '2024-10-01', now()),
+  ('e3200000-0002-4000-8000-000000000002', 'c3200000-0002-4000-8000-000000000002', (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B2'), 'reinscription', 'validated', '2024-10-01', now()),
+  ('e3200000-0003-4000-8000-000000000003', 'c3200000-0003-4000-8000-000000000003', (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B2'), 'reinscription', 'validated', '2024-10-01', now()),
+  ('e3200000-0004-4000-8000-000000000004', 'c3200000-0004-4000-8000-000000000004', (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B2'), 'reinscription', 'validated', '2024-10-01', now()),
+  ('e3200000-0005-4000-8000-000000000005', 'c3200000-0005-4000-8000-000000000005', (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B2'), 'reinscription', 'validated', '2024-10-01', now()),
+  ('e3200000-0006-4000-8000-000000000006', 'c3200000-0006-4000-8000-000000000006', (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B2'), 'reinscription', 'validated', '2024-10-01', now()),
+  ('e3200000-0007-4000-8000-000000000007', 'c3200000-0007-4000-8000-000000000007', (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM programs WHERE code = 'THEO'), (SELECT id FROM levels WHERE code = 'B2'), 'reinscription', 'validated', '2024-10-01', now());
 
 
 -- ============================================================================
--- 10. GRADES INSERTION (2024-2025)
+-- 10. GRADES INSERTION (2025)
 -- ============================================================================
 -- Helper procedure to insert grade
 CREATE OR REPLACE PROCEDURE public.insert_std_grade(
@@ -369,7 +365,6 @@ CALL insert_std_grade('0143/IBR/B1', 'B1-S01', 67);
 CALL insert_std_grade('0143/IBR/B1', 'B1-S02', 57);
 CALL insert_std_grade('0143/IBR/B1', 'B1-S03', 43);
 CALL insert_std_grade('0143/IBR/B1', 'B1-S04', 65);
-CALL insert_std_grade('0143/IBR/B1', 'B1-S05', 66);
 CALL insert_std_grade('0143/IBR/B1', 'B1-S06', 62.5);
 CALL insert_std_grade('0143/IBR/B1', 'B1-S07', 43);
 CALL insert_std_grade('0143/IBR/B1', 'B1-S08', 67);
@@ -530,55 +525,55 @@ DROP PROCEDURE public.insert_std_grade(text, text, numeric);
 
 
 -- ============================================================================
--- 11. ANNUAL RESULTS & RANKINGS (2024-2025)
+-- 11. ANNUAL RESULTS & RANKINGS (2025)
 -- ============================================================================
 -- B1 Results & Rankings
 INSERT INTO annual_results (student_id, academic_year_id, level_id, average, weighted_average, rank, decision)
 VALUES
-  ((SELECT id FROM students WHERE matricule = '0145/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B1'), 95.77, 95.77, 1, 'admis'),
-  ((SELECT id FROM students WHERE matricule = '0139/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B1'), 82.53, 82.53, 2, 'admis'),
-  ((SELECT id FROM students WHERE matricule = '0140/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B1'), 71.87, 71.87, 3, 'admis'),
-  ((SELECT id FROM students WHERE matricule = '0142/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B1'), 66.63, 66.63, 4, 'admis'),
-  ((SELECT id FROM students WHERE matricule = '0143/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B1'), 56.40, 56.40, 5, 'admis'),
-  ((SELECT id FROM students WHERE matricule = '0138/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B1'), 39.77, 39.77, 6, 'ajourne'),
-  ((SELECT id FROM students WHERE matricule = '0137/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B1'), 37.73, 37.73, 7, 'ajourne'),
-  ((SELECT id FROM students WHERE matricule = '0144/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B1'), 8.00, 8.00, 8, 'ajourne');
+  ((SELECT id FROM students WHERE matricule = '0145/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B1'), 95.77, 95.77, 1, 'admis'),
+  ((SELECT id FROM students WHERE matricule = '0139/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B1'), 82.53, 82.53, 2, 'admis'),
+  ((SELECT id FROM students WHERE matricule = '0140/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B1'), 71.87, 71.87, 3, 'admis'),
+  ((SELECT id FROM students WHERE matricule = '0142/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B1'), 66.63, 66.63, 4, 'admis'),
+  ((SELECT id FROM students WHERE matricule = '0143/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B1'), 56.40, 56.40, 5, 'admis'),
+  ((SELECT id FROM students WHERE matricule = '0138/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B1'), 39.77, 39.77, 6, 'ajourne'),
+  ((SELECT id FROM students WHERE matricule = '0137/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B1'), 37.73, 37.73, 7, 'ajourne'),
+  ((SELECT id FROM students WHERE matricule = '0144/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B1'), 8.00, 8.00, 8, 'ajourne');
 
 INSERT INTO rankings (student_id, academic_year_id, level_id, rank, average, decision)
 VALUES
-  ((SELECT id FROM students WHERE matricule = '0145/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B1'), 1, 95.77, 'Admis'),
-  ((SELECT id FROM students WHERE matricule = '0139/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B1'), 2, 82.53, 'Admis'),
-  ((SELECT id FROM students WHERE matricule = '0140/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B1'), 3, 71.87, 'Admis'),
-  ((SELECT id FROM students WHERE matricule = '0142/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B1'), 4, 66.63, 'Admis'),
-  ((SELECT id FROM students WHERE matricule = '0143/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B1'), 5, 56.40, 'Admis'),
-  ((SELECT id FROM students WHERE matricule = '0138/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B1'), 6, 39.77, 'Ajourné'),
-  ((SELECT id FROM students WHERE matricule = '0137/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B1'), 7, 37.73, 'Ajourné'),
-  ((SELECT id FROM students WHERE matricule = '0144/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B1'), 8, 8.00, 'Ajourné');
+  ((SELECT id FROM students WHERE matricule = '0145/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B1'), 1, 95.77, 'Admis'),
+  ((SELECT id FROM students WHERE matricule = '0139/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B1'), 2, 82.53, 'Admis'),
+  ((SELECT id FROM students WHERE matricule = '0140/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B1'), 3, 71.87, 'Admis'),
+  ((SELECT id FROM students WHERE matricule = '0142/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B1'), 4, 66.63, 'Admis'),
+  ((SELECT id FROM students WHERE matricule = '0143/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B1'), 5, 56.40, 'Admis'),
+  ((SELECT id FROM students WHERE matricule = '0138/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B1'), 6, 39.77, 'Ajourné'),
+  ((SELECT id FROM students WHERE matricule = '0137/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B1'), 7, 37.73, 'Ajourné'),
+  ((SELECT id FROM students WHERE matricule = '0144/IBR/B1'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B1'), 8, 8.00, 'Ajourné');
 
 -- B2 Results & Rankings
 INSERT INTO annual_results (student_id, academic_year_id, level_id, average, weighted_average, rank, decision)
 VALUES
-  ((SELECT id FROM students WHERE matricule = '0127/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B2'), 94.84, 94.84, 1, 'admis'),
-  ((SELECT id FROM students WHERE matricule = '0128/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B2'), 94.19, 94.19, 2, 'admis'),
-  ((SELECT id FROM students WHERE matricule = '0130/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B2'), 93.15, 93.15, 3, 'admis'),
-  ((SELECT id FROM students WHERE matricule = '0131/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B2'), 91.34, 91.34, 4, 'admis'),
-  ((SELECT id FROM students WHERE matricule = '0132/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B2'), 76.09, 76.09, 5, 'admis'),
-  ((SELECT id FROM students WHERE matricule = '0129/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B2'), 57.09, 57.09, 6, 'admis'),
-  ((SELECT id FROM students WHERE matricule = '0107/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B2'), 31.50, 31.50, 7, 'ajourne');
+  ((SELECT id FROM students WHERE matricule = '0127/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B2'), 94.84, 94.84, 1, 'admis'),
+  ((SELECT id FROM students WHERE matricule = '0128/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B2'), 94.19, 94.19, 2, 'admis'),
+  ((SELECT id FROM students WHERE matricule = '0130/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B2'), 93.15, 93.15, 3, 'admis'),
+  ((SELECT id FROM students WHERE matricule = '0131/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B2'), 91.34, 91.34, 4, 'admis'),
+  ((SELECT id FROM students WHERE matricule = '0132/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B2'), 76.09, 76.09, 5, 'admis'),
+  ((SELECT id FROM students WHERE matricule = '0129/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B2'), 57.09, 57.09, 6, 'admis'),
+  ((SELECT id FROM students WHERE matricule = '0107/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B2'), 31.50, 31.50, 7, 'ajourne');
 
 INSERT INTO rankings (student_id, academic_year_id, level_id, rank, average, decision)
 VALUES
-  ((SELECT id FROM students WHERE matricule = '0127/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B2'), 1, 94.84, 'Admis'),
-  ((SELECT id FROM students WHERE matricule = '0128/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B2'), 2, 94.19, 'Admis'),
-  ((SELECT id FROM students WHERE matricule = '0130/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B2'), 3, 93.15, 'Admis'),
-  ((SELECT id FROM students WHERE matricule = '0131/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B2'), 4, 91.34, 'Admis'),
-  ((SELECT id FROM students WHERE matricule = '0132/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B2'), 5, 76.09, 'Admis'),
-  ((SELECT id FROM students WHERE matricule = '0129/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B2'), 6, 57.09, 'Admis'),
-  ((SELECT id FROM students WHERE matricule = '0107/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B2'), 7, 31.50, 'Ajourné');
+  ((SELECT id FROM students WHERE matricule = '0127/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B2'), 1, 94.84, 'Admis'),
+  ((SELECT id FROM students WHERE matricule = '0128/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B2'), 2, 94.19, 'Admis'),
+  ((SELECT id FROM students WHERE matricule = '0130/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B2'), 3, 93.15, 'Admis'),
+  ((SELECT id FROM students WHERE matricule = '0131/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B2'), 4, 91.34, 'Admis'),
+  ((SELECT id FROM students WHERE matricule = '0132/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B2'), 5, 76.09, 'Admis'),
+  ((SELECT id FROM students WHERE matricule = '0129/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B2'), 6, 57.09, 'Admis'),
+  ((SELECT id FROM students WHERE matricule = '0107/IBR/B2'), (SELECT id FROM academic_years WHERE name = '2025'), (SELECT id FROM levels WHERE code = 'B2'), 7, 31.50, 'Ajourné');
 
 
 -- ============================================================================
--- 12. FEE STRUCTURES & FINANCIAL ACCOUNTS (2024-2025)
+-- 12. FEE STRUCTURES & FINANCIAL ACCOUNTS (2025)
 -- ============================================================================
 -- Fee categories
 INSERT INTO fee_categories (name, code, description, is_mandatory, order_index) VALUES
@@ -590,10 +585,10 @@ INSERT INTO fee_categories (name, code, description, is_mandatory, order_index) 
   ('Frais de diplôme', 'DIPLOME', 'Frais de diplôme en fin de cycle', false, 6)
 ON CONFLICT (code) DO NOTHING;
 
--- Tuition fee structures for 2024-2025
+-- Tuition fee structures for 2025
 DO $$
 DECLARE
-  ay_id uuid := (SELECT id FROM academic_years WHERE name = '2024-2025');
+  ay_id uuid := (SELECT id FROM academic_years WHERE name = '2025');
   p_id uuid := (SELECT id FROM programs WHERE code = 'THEO');
   b1_id uuid := (SELECT id FROM levels WHERE code = 'B1');
   b2_id uuid := (SELECT id FROM levels WHERE code = 'B2');
@@ -618,7 +613,7 @@ END $$;
 -- Initialize Accounts
 DO $$
 DECLARE
-  ay_id uuid := (SELECT id FROM academic_years WHERE name = '2024-2025');
+  ay_id uuid := (SELECT id FROM academic_years WHERE name = '2025');
   s record;
   sfa_id uuid;
   fee_row record;
