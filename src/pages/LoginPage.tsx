@@ -75,7 +75,7 @@ export function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="input-field"
-                placeholder="exemple@ibr-benin.org"
+                placeholder="exemple@ibr-bonoua.org"
                 required
               />
             </div>
@@ -111,9 +111,8 @@ export function LoginPage() {
 
           {mode === 'login' && (
             <div className="mt-4 bg-ibr-50 border border-ibr-200 rounded-lg px-4 py-3 text-xs text-ibr-700">
-              <p className="font-semibold mb-1">Compte démo administrateur</p>
-              <p>Email : admin@ibr-benin.org</p>
-              <p>Mot de passe : ibr2025</p>
+              <p className="font-semibold mb-1">💡 Premier compte inscrit</p>
+              <p>Le tout premier compte enregistré via "Créer un compte" sera automatiquement promu <b>Super Administrateur</b>.</p>
             </div>
           )}
 
@@ -133,7 +132,7 @@ export function LoginPage() {
         </div>
 
         <p className="text-center text-ibr-400 text-xs mt-6">
-          © {new Date().getFullYear()} Institut Biblique Rehoboth - Bonoua, Bénin
+          © {new Date().getFullYear()} Institut Biblique Rehoboth - Bonoua, Côte d'Ivoire
         </p>
       </div>
     </div>

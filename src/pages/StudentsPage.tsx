@@ -148,9 +148,9 @@ export function StudentCreatePage() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     last_name: '', first_name: '', sex: '', matricule: '',
-    birth_date: '', birth_place: '', nationality: 'Béninoise',
+    birth_date: '', birth_place: '', nationality: 'Ivoirienne',
     marital_status: '', phone: '', whatsapp_phone: '', email: '',
-    residence_address: '', city: '', country: 'Bénin',
+    residence_address: '', city: '', country: "Côte d'Ivoire",
     church: '', denomination: '', pastor_name: '', ministry_role: '',
     emergency_contact_name: '', emergency_contact_phone: '',
     current_level_id: '', academic_status: 'preinscrit',
