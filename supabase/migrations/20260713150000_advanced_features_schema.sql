@@ -123,12 +123,12 @@ BEGIN
     SET enrollment_matricule = new_mat
     WHERE id = r.enrollment_id;
 
-    -- Update student active matricule and student_number if this is their current level
+    -- Update student active matricule, student_number and current level
     UPDATE students 
     SET matricule = new_mat,
-        student_number = seq_str
-    WHERE id = r.student_id 
-      AND current_level_id = target_level_id;
+        student_number = seq_str,
+        current_level_id = target_level_id
+    WHERE id = r.student_id;
 
     -- Update matricule_sequences
     DELETE FROM matricule_sequences 
