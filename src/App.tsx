@@ -14,6 +14,7 @@ import {
   CardsPage, UsersPage, RolesPage, SettingsPage, AuditPage,
   DocumentsPage, ArchivesPage,
 } from './pages/AdminPages';
+import { CardVerifyPage } from './pages/CardVerifyPage';
 import { LoadingSpinner } from './components/ui';
 
 function AppRoutes() {
@@ -77,6 +78,10 @@ function AppContent() {
         <LoadingSpinner label="Chargement..." />
       </div>
     );
+  }
+
+  if (route.path.startsWith('/check-card/')) {
+    return <CardVerifyPage studentId={route.path.split('/')[2]} />;
   }
 
   if (!session) {

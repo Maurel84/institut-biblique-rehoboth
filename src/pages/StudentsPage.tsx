@@ -2,14 +2,16 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useRouter } from '../lib/router';
 import { useCurrentAcademicYear, useLevels, useToast } from '../lib/hooks';
-import { Card, PageHeader, LoadingSpinner, SearchInput, Select, Badge, EmptyState, ConfirmDialog } from '../components/ui';
-import { ACADEMIC_STATUS_LABELS, fullName, formatDate } from '../lib/utils';
+import { Card, PageHeader, LoadingSpinner, SearchInput, Select, Badge, EmptyState, ConfirmDialog, Modal } from '../components/ui';
+import { ACADEMIC_STATUS_LABELS, fullName, formatDate, formatFCFA } from '../lib/utils';
 import type { Student } from '../types';
-import { Users, Plus, Eye, Search } from 'lucide-react';
+import {
+  Users, Plus, Eye, Search, Edit, Trash2, Calendar, Clock,
+  ArrowUpRight, Award, CreditCard, DollarSign, Package, Check, ChevronRight
+} from 'lucide-react';
 
 export function StudentsListPage() {
   const { navigate } = useRouter();
-  const { year } = useCurrentAcademicYear();
   const { levels } = useLevels();
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,12 +19,13 @@ export function StudentsListPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [levelFilter, setLevelFilter] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<Student | null>(null);
+  const { show } = useToast();
 
   const loadStudents = useCallback(async () => {
     setLoading(true);
     let query = supabase
       .from('students')
-      .select('*')
+      .select('*, current_level:levels(*)')
       .is('deleted_at', null)
       .order('last_name');
 
@@ -40,12 +43,16 @@ export function StudentsListPage() {
   useEffect(() => { loadStudents(); }, [loadStudents]);
 
   async function handleDelete(student: Student) {
-    await supabase.from('students').update({ deleted_at: new Date().toISOString() }).eq('id', student.id);
-    loadStudents();
+    const { error } = await supabase.from('students').update({ deleted_at: new Date().toISOString() }).eq('id', student.id);
+    if (error) show(error.message, 'error');
+    else {
+      show('Étudiant archivé avec succès', 'success');
+      loadStudents();
+    }
   }
 
   return (
-    <div>
+    <div className="animate-slide-in">
       <PageHeader
         title="Liste des étudiants"
         subtitle={`${students.length} étudiant(s) inscrit(s)`}
@@ -56,7 +63,7 @@ export function StudentsListPage() {
         }
       />
 
-      <Card className="p-4 mb-4">
+      <Card className="p-4 mb-6">
         <div className="flex flex-col sm:flex-row gap-3">
           <SearchInput value={search} onChange={setSearch} placeholder="Nom, prénom, matricule, téléphone..." />
           <Select
@@ -86,38 +93,49 @@ export function StudentsListPage() {
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">N°</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Matricule</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Nom et prénoms</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Sexe</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Téléphone</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Statut</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Actions</th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-gray-600">N°</th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-gray-600">N° Perm.</th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-gray-600">Matricule Actuel</th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-gray-600">Nom et prénoms</th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-gray-600">Sexe</th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-gray-600">Téléphone</th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-gray-600">Niveau</th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-gray-600">Statut</th>
+                  <th className="text-center px-5 py-3.5 font-semibold text-gray-600">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {students.map((s, i) => (
                   <tr key={s.id} className="table-row-hover">
-                    <td className="px-4 py-3 text-gray-500">{i + 1}</td>
-                    <td className="px-4 py-3 font-medium text-ibr-700">{s.matricule ?? '-'}</td>
-                    <td className="px-4 py-3 font-medium text-gray-900">{fullName(s.last_name, s.first_name)}</td>
-                    <td className="px-4 py-3">{s.sex === 'M' ? 'M' : s.sex === 'F' ? 'F' : '-'}</td>
-                    <td className="px-4 py-3 text-gray-600">{s.phone ?? '-'}</td>
-                    <td className="px-4 py-3">
-                      <Badge color={s.academic_status === 'actif' ? 'green' : s.academic_status === 'suspendu' || s.academic_status === 'exclu' ? 'red' : 'gray'}>
+                    <td className="px-5 py-3.5 text-gray-500">{i + 1}</td>
+                    <td className="px-5 py-3.5 font-semibold text-gray-600 font-mono">{s.student_number ?? '-'}</td>
+                    <td className="px-5 py-3.5 font-semibold text-ibr-700 font-mono">{s.matricule ?? '-'}</td>
+                    <td className="px-5 py-3.5 font-semibold text-gray-900">{fullName(s.last_name, s.first_name)}</td>
+                    <td className="px-5 py-3.5 text-gray-600">{s.sex === 'M' ? 'M' : s.sex === 'F' ? 'F' : '-'}</td>
+                    <td className="px-5 py-3.5 text-gray-600">{s.phone ?? '-'}</td>
+                    <td className="px-5 py-3.5 text-gray-700 font-medium">{s.current_level?.name ?? '-'}</td>
+                    <td className="px-5 py-3.5">
+                      <Badge color={s.academic_status === 'actif' ? 'green' : s.academic_status === 'diplome' ? 'blue' : s.academic_status === 'suspendu' || s.academic_status === 'exclu' ? 'red' : 'gray'}>
                         {ACADEMIC_STATUS_LABELS[s.academic_status] ?? s.academic_status}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
+                    <td className="px-5 py-3.5 text-center">
+                      <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => navigate(`/students/${s.id}`)}
-                          className="text-ibr-600 hover:text-ibr-800"
+                          className="text-gray-400 hover:text-ibr-700 p-1"
                           title="Voir la fiche"
                         >
                           <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget(s)}
+                          className="text-gray-400 hover:text-red-600 p-1"
+                          title="Archiver"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -133,8 +151,8 @@ export function StudentsListPage() {
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteTarget && handleDelete(deleteTarget)}
-        title="Supprimer l'étudiant"
-        message={`Voulez-vous vraiment supprimer ${deleteTarget ? fullName(deleteTarget.last_name, deleteTarget.first_name) : ''} ? Cette action est réversible.`}
+        title="Archiver l'étudiant"
+        message={`Voulez-vous vraiment archiver ${deleteTarget ? fullName(deleteTarget.last_name, deleteTarget.first_name) : ''} ? Cette action est réversible.`}
       />
     </div>
   );
@@ -143,11 +161,10 @@ export function StudentsListPage() {
 export function StudentCreatePage() {
   const { navigate } = useRouter();
   const { levels } = useLevels();
-  const { year } = useCurrentAcademicYear();
   const { show } = useToast();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    last_name: '', first_name: '', sex: '', matricule: '',
+    last_name: '', first_name: '', sex: '', matricule: '', student_number: '',
     birth_date: '', birth_place: '', nationality: 'Ivoirienne',
     marital_status: '', phone: '', whatsapp_phone: '', email: '',
     residence_address: '', city: '', country: "Côte d'Ivoire",
@@ -177,8 +194,11 @@ export function StudentCreatePage() {
       .limit(1);
 
     const nextNum = seqData && seqData.length > 0 ? (seqData[0] as any).sequence_number + 1 : 1;
-    const matricule = `${String(nextNum).padStart(4, '0')}/IBR/${level.code}`;
+    const seqStr = String(nextNum).padStart(4, '0');
+    const matricule = `${seqStr}/IBR/${level.code}`;
+    
     update('matricule', matricule);
+    update('student_number', seqStr);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -190,7 +210,6 @@ export function StudentCreatePage() {
 
     setSaving(true);
 
-    // Check matricule uniqueness if provided
     if (form.matricule) {
       const { data: existing } = await supabase
         .from('students')
@@ -210,6 +229,7 @@ export function StudentCreatePage() {
       first_name: form.first_name,
       sex: form.sex || null,
       matricule: form.matricule || null,
+      student_number: form.student_number || null,
       birth_date: form.birth_date || null,
       birth_place: form.birth_place || null,
       nationality: form.nationality || null,
@@ -262,7 +282,7 @@ export function StudentCreatePage() {
   }
 
   return (
-    <div>
+    <div className="animate-slide-in">
       <PageHeader
         title="Nouvel étudiant"
         subtitle="Création d'une fiche étudiant"
@@ -270,7 +290,6 @@ export function StudentCreatePage() {
       />
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Identité */}
         <Card className="p-6">
           <h3 className="font-semibold text-gray-900 mb-4">Identité</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -299,10 +318,6 @@ export function StudentCreatePage() {
               <input className="input-field" value={form.birth_place} onChange={(e) => update('birth_place', e.target.value)} />
             </div>
             <div>
-              <label className="label-field">Nationalité</label>
-              <input className="input-field" value={form.nationality} onChange={(e) => update('nationality', e.target.value)} />
-            </div>
-            <div>
               <label className="label-field">Situation matrimoniale</label>
               <select className="input-field" value={form.marital_status} onChange={(e) => update('marital_status', e.target.value)}>
                 <option value="">--</option>
@@ -315,23 +330,26 @@ export function StudentCreatePage() {
           </div>
         </Card>
 
-        {/* Matricule et niveau */}
         <Card className="p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Matricule et niveau</h3>
+          <h3 className="font-semibold text-gray-900 mb-4">Matricule et niveau d'affectation</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
-              <label className="label-field">Matricule</label>
-              <div className="flex gap-2">
-                <input className="input-field" value={form.matricule} onChange={(e) => update('matricule', e.target.value)} placeholder="Auto-généré ou manuel" />
-                <button type="button" className="btn-secondary whitespace-nowrap" onClick={generateMatricule}>Générer</button>
-              </div>
-            </div>
             <div>
               <label className="label-field">Niveau</label>
               <select className="input-field" value={form.current_level_id} onChange={(e) => update('current_level_id', e.target.value)}>
                 <option value="">--</option>
                 {levels.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
               </select>
+            </div>
+            <div>
+              <label className="label-field">Matricule académique</label>
+              <div className="flex gap-2">
+                <input className="input-field" value={form.matricule} onChange={(e) => update('matricule', e.target.value)} placeholder="0137/IBR/B1" />
+                <button type="button" className="btn-secondary whitespace-nowrap py-2" onClick={generateMatricule}>Générer</button>
+              </div>
+            </div>
+            <div>
+              <label className="label-field">N° dossier permanent</label>
+              <input className="input-field" value={form.student_number} onChange={(e) => update('student_number', e.target.value)} placeholder="0137" />
             </div>
             <div>
               <label className="label-field">Statut académique</label>
@@ -348,30 +366,11 @@ export function StudentCreatePage() {
         <Card className="p-6">
           <h3 className="font-semibold text-gray-900 mb-4">Contact</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
-              <label className="label-field">Téléphone</label>
-              <input className="input-field" value={form.phone} onChange={(e) => update('phone', e.target.value)} />
-            </div>
-            <div>
-              <label className="label-field">WhatsApp</label>
-              <input className="input-field" value={form.whatsapp_phone} onChange={(e) => update('whatsapp_phone', e.target.value)} />
-            </div>
-            <div>
-              <label className="label-field">Email</label>
-              <input type="email" className="input-field" value={form.email} onChange={(e) => update('email', e.target.value)} />
-            </div>
-            <div>
-              <label className="label-field">Adresse de résidence</label>
-              <input className="input-field" value={form.residence_address} onChange={(e) => update('residence_address', e.target.value)} />
-            </div>
-            <div>
-              <label className="label-field">Ville</label>
-              <input className="input-field" value={form.city} onChange={(e) => update('city', e.target.value)} />
-            </div>
-            <div>
-              <label className="label-field">Pays</label>
-              <input className="input-field" value={form.country} onChange={(e) => update('country', e.target.value)} />
-            </div>
+            <div><label className="label-field">Téléphone</label><input className="input-field" value={form.phone} onChange={(e) => update('phone', e.target.value)} /></div>
+            <div><label className="label-field">WhatsApp</label><input className="input-field" value={form.whatsapp_phone} onChange={(e) => update('whatsapp_phone', e.target.value)} /></div>
+            <div><label className="label-field">Email</label><input type="email" className="input-field" value={form.email} onChange={(e) => update('email', e.target.value)} /></div>
+            <div><label className="label-field">Adresse de résidence</label><input className="input-field" value={form.residence_address} onChange={(e) => update('residence_address', e.target.value)} /></div>
+            <div><label className="label-field">Ville</label><input className="input-field" value={form.city} onChange={(e) => update('city', e.target.value)} /></div>
           </div>
         </Card>
 
@@ -379,44 +378,11 @@ export function StudentCreatePage() {
         <Card className="p-6">
           <h3 className="font-semibold text-gray-900 mb-4">Église et ministère</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
-              <label className="label-field">Église d'appartenance</label>
-              <input className="input-field" value={form.church} onChange={(e) => update('church', e.target.value)} />
-            </div>
-            <div>
-              <label className="label-field">Dénomination</label>
-              <input className="input-field" value={form.denomination} onChange={(e) => update('denomination', e.target.value)} />
-            </div>
-            <div>
-              <label className="label-field">Nom du pasteur</label>
-              <input className="input-field" value={form.pastor_name} onChange={(e) => update('pastor_name', e.target.value)} />
-            </div>
-            <div>
-              <label className="label-field">Ministère / fonction</label>
-              <input className="input-field" value={form.ministry_role} onChange={(e) => update('ministry_role', e.target.value)} />
-            </div>
+            <div><label className="label-field">Église d'appartenance</label><input className="input-field" value={form.church} onChange={(e) => update('church', e.target.value)} /></div>
+            <div><label className="label-field">Dénomination</label><input className="input-field" value={form.denomination} onChange={(e) => update('denomination', e.target.value)} /></div>
+            <div><label className="label-field">Nom du pasteur</label><input className="input-field" value={form.pastor_name} onChange={(e) => update('pastor_name', e.target.value)} /></div>
+            <div><label className="label-field">Ministère / fonction</label><input className="input-field" value={form.ministry_role} onChange={(e) => update('ministry_role', e.target.value)} /></div>
           </div>
-        </Card>
-
-        {/* Urgence */}
-        <Card className="p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Contact d'urgence</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="label-field">Personne à contacter</label>
-              <input className="input-field" value={form.emergency_contact_name} onChange={(e) => update('emergency_contact_name', e.target.value)} />
-            </div>
-            <div>
-              <label className="label-field">Téléphone d'urgence</label>
-              <input className="input-field" value={form.emergency_contact_phone} onChange={(e) => update('emergency_contact_phone', e.target.value)} />
-            </div>
-          </div>
-        </Card>
-
-        {/* Observations */}
-        <Card className="p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Observations</h3>
-          <textarea className="input-field min-h-[80px]" value={form.observations} onChange={(e) => update('observations', e.target.value)} />
         </Card>
 
         <div className="flex justify-end gap-3">
@@ -433,19 +399,29 @@ export function StudentCreatePage() {
 export function StudentDetailPage({ studentId }: { studentId: string }) {
   const { navigate } = useRouter();
   const { year } = useCurrentAcademicYear();
+  const { levels } = useLevels();
+  const { show } = useToast();
+  
   const [student, setStudent] = useState<Student | null>(null);
   const [enrollments, setEnrollments] = useState<any[]>([]);
   const [grades, setGrades] = useState<any[]>([]);
   const [feeAccount, setFeeAccount] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'info' | 'academic' | 'financial'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'academic' | 'financial' | 'timeline'>('info');
 
-  useEffect(() => {
-    loadAll();
-  }, [studentId]);
+  // Promotion state
+  const [showPromotionModal, setShowPromotionModal] = useState(false);
+  const [promoting, setPromoting] = useState(false);
+  const [promotionForm, setPromotionForm] = useState({
+    target_year_id: '',
+    target_level_id: '',
+    enrollment_type: 'reinscription' as 'inscription' | 'reinscription'
+  });
+  const [allYears, setAllYears] = useState<any[]>([]);
 
-  async function loadAll() {
+  const loadAll = useCallback(async () => {
+    setLoading(true);
     const { data: s } = await supabase
       .from('students')
       .select('*, current_level:levels(*)')
@@ -453,74 +429,223 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
       .maybeSingle();
     setStudent(s as any);
 
-    if (year) {
-      const { data: enrolls } = await supabase
-        .from('enrollments')
-        .select('*, level:levels(*), program:programs(*), academic_year:academic_years(*)')
-        .eq('student_id', studentId)
-        .order('created_at', { ascending: false });
-      setEnrollments(enrolls ?? []);
+    const { data: enrolls } = await supabase
+      .from('enrollments')
+      .select('*, level:levels(*), program:programs(*), academic_year:academic_years(*)')
+      .eq('student_id', studentId)
+      .order('created_at', { ascending: false });
+    setEnrollments(enrolls ?? []);
 
-      const { data: gr } = await supabase
-        .from('grades')
-        .select('*, subject:subjects(*, module:modules(*))')
-        .eq('student_id', studentId)
-        .eq('academic_year_id', year.id)
-        .order('created_at');
-      setGrades(gr ?? []);
+    const { data: gr } = await supabase
+      .from('grades')
+      .select('*, subject:subjects(*, module:modules(*)), academic_year:academic_years(*)')
+      .eq('student_id', studentId)
+      .order('created_at');
+    setGrades(gr ?? []);
 
-      const { data: fa } = await supabase
-        .from('student_fee_accounts')
-        .select('*, student_fee_items(*, fee_category:fee_categories(*))')
-        .eq('student_id', studentId)
-        .eq('academic_year_id', year.id)
-        .maybeSingle();
-      setFeeAccount(fa);
+    const { data: fa } = await supabase
+      .from('student_fee_accounts')
+      .select('*, student_fee_items(*, fee_category:fee_categories(*))')
+      .eq('student_id', studentId)
+      .order('created_at', { ascending: false });
+    // Pick current year fee account
+    const currentFa = fa?.find((x) => x.academic_year_id === year?.id) || fa?.[0] || null;
+    setFeeAccount(currentFa);
 
-      const { data: pays } = await supabase
-        .from('payments')
-        .select('*')
-        .eq('student_id', studentId)
-        .eq('academic_year_id', year.id)
-        .order('payment_date', { ascending: false });
-      setPayments(pays ?? []);
-    }
+    const { data: pays } = await supabase
+      .from('payments')
+      .select('*, academic_year:academic_years(*)')
+      .eq('student_id', studentId)
+      .order('payment_date', { ascending: false });
+    setPayments(pays ?? []);
+
+    // Load academic years for promotion list
+    supabase.from('academic_years').select('*').order('name', { ascending: false }).then(({ data }) => {
+      setAllYears(data ?? []);
+      // Pre-select next year
+      if (year && data) {
+        const nextY = data.find((y) => y.id !== year.id);
+        if (nextY) setPromotionForm((prev) => ({ ...prev, target_year_id: nextY.id }));
+      }
+    });
 
     setLoading(false);
+  }, [studentId, year]);
+
+  useEffect(() => {
+    loadAll();
+  }, [loadAll]);
+
+  // Set default level when level loads or dialog opens
+  useEffect(() => {
+    if (student?.current_level && levels.length > 0) {
+      const currentIdx = student.current_level.order_index;
+      const nextLevel = levels.find((l) => l.order_index === currentIdx + 1);
+      if (nextLevel) {
+        setPromotionForm((prev) => ({ ...prev, target_level_id: nextLevel.id }));
+      }
+    }
+  }, [student, levels]);
+
+  async function handlePromote() {
+    if (!promotionForm.target_year_id || !promotionForm.target_level_id || !student) {
+      show('Sélectionnez l\'année et le niveau d\'accueil', 'error');
+      return;
+    }
+
+    setPromoting(true);
+    try {
+      const levelObj = levels.find((l) => l.id === promotionForm.target_level_id);
+      if (!levelObj) return;
+
+      const enrollmentMatricule = `${student.student_number}/IBR/${levelObj.code}`;
+
+      // 1. Create new enrollment
+      const { data: enrollment, error: enrErr } = await supabase.from('enrollments').insert({
+        student_id: student.id,
+        academic_year_id: promotionForm.target_year_id,
+        level_id: promotionForm.target_level_id,
+        enrollment_type: promotionForm.enrollment_type,
+        status: 'validated',
+        enrollment_date: new Date().toISOString().split('T')[0],
+        validated_at: new Date().toISOString(),
+        enrollment_matricule: enrollmentMatricule,
+      }).select().single();
+
+      if (enrErr) throw new Error(enrErr.message);
+
+      // 2. Fetch target fee structures
+      const { data: feeStructures } = await supabase
+        .from('tuition_fee_structures')
+        .select('*')
+        .eq('academic_year_id', promotionForm.target_year_id)
+        .eq('level_id', promotionForm.target_level_id);
+
+      const totalDue = feeStructures?.reduce((s, f) => s + f.amount, 0) || 0;
+
+      // 3. Create student fee account
+      const { data: feeAccount, error: accErr } = await supabase.from('student_fee_accounts').insert({
+        student_id: student.id,
+        academic_year_id: promotionForm.target_year_id,
+        enrollment_id: enrollment.id,
+        level_id: promotionForm.target_level_id,
+        total_due: totalDue,
+        total_paid: 0,
+        total_discount: 0,
+        remaining: totalDue,
+        currency: 'FCFA',
+        is_up_to_date: totalDue <= 0,
+      }).select().single();
+
+      if (accErr) throw new Error(accErr.message);
+
+      if (feeStructures && feeAccount) {
+        for (const fs of feeStructures) {
+          await supabase.from('student_fee_items').insert({
+            student_fee_account_id: feeAccount.id,
+            fee_category_id: fs.fee_category_id,
+            original_amount: fs.amount,
+            discount_amount: 0,
+            final_amount: fs.amount,
+            amount_paid: 0,
+            remaining: fs.amount,
+            is_mandatory: true,
+          });
+        }
+      }
+
+      // 4. Update student level
+      await supabase.from('students').update({
+        current_level_id: promotionForm.target_level_id,
+        matricule: enrollmentMatricule,
+        academic_status: 'actif'
+      }).eq('id', student.id);
+
+      show('Étudiant promu en classe supérieure avec succès !', 'success');
+      setShowPromotionModal(false);
+      loadAll();
+    } catch (err: any) {
+      show(err.message || 'Erreur lors de la promotion', 'error');
+    } finally {
+      setPromoting(false);
+    }
   }
+
+  // Compile timeline events
+  const timelineEvents: { date: string; title: string; desc: string; icon: any; color: string }[] = [];
+  
+  enrollments.forEach((e) => {
+    timelineEvents.push({
+      date: e.enrollment_date,
+      title: `Inscription en ${e.level?.name ?? 'classe'}`,
+      desc: `Type: ${e.enrollment_type === 'inscription' ? 'Première inscription' : 'Réinscription'} | Matricule spécifique: ${e.enrollment_matricule ?? '-'} (${e.academic_year?.name})`,
+      icon: Calendar,
+      color: 'bg-ibr-100 text-ibr-700',
+    });
+  });
+
+  payments.forEach((p) => {
+    timelineEvents.push({
+      date: p.payment_date,
+      title: 'Paiement de scolarité',
+      desc: `Versement de ${formatFCFA(p.amount)} par ${p.payment_method} | Reçu N° ${p.receipt_number ?? '-'} (${p.academic_year?.name})`,
+      icon: DollarSign,
+      color: 'bg-green-100 text-green-700',
+    });
+  });
+
+  if (student?.first_enrollment_date) {
+    timelineEvents.push({
+      date: student.first_enrollment_date,
+      title: 'Création du dossier étudiant',
+      desc: `Première admission enregistrée à l'IBR | Numéro de dossier permanent attribue : ${student.student_number ?? '-'}`,
+      icon: Users,
+      color: 'bg-blue-100 text-blue-700',
+    });
+  }
+
+  // Sort timeline events descending
+  timelineEvents.sort((a, b) => b.date.localeCompare(a.date));
 
   if (loading) return <LoadingSpinner />;
   if (!student) return <div className="text-center py-12 text-gray-500">Étudiant introuvable</div>;
 
   return (
-    <div>
+    <div className="animate-slide-in">
       <PageHeader
         title={fullName(student.last_name, student.first_name)}
-        subtitle={student.matricule ?? 'Sans matricule'}
-        actions={<button className="btn-secondary" onClick={() => navigate('/students')}>Retour à la liste</button>}
+        subtitle={`Dossier permanent : ${student.student_number ?? '-'} | Matricule actif : ${student.matricule ?? '-'}`}
+        actions={
+          <div className="flex gap-2">
+            {student.academic_status === 'actif' && (
+              <button className="btn-primary flex items-center gap-1.5" onClick={() => setShowPromotionModal(true)}>
+                <ArrowUpRight className="w-4 h-4" /> Promouvoir / Réinscrire
+              </button>
+            )}
+            <button className="btn-secondary" onClick={() => navigate('/students')}>Retour à la liste</button>
+          </div>
+        }
       />
 
-      {/* Status badge */}
-      <div className="flex items-center gap-3 mb-4">
-        <Badge color={student.academic_status === 'actif' ? 'green' : 'gray'}>
+      <div className="flex items-center gap-3 mb-6">
+        <Badge color={student.academic_status === 'actif' ? 'green' : student.academic_status === 'diplome' ? 'blue' : 'gray'}>
           {ACADEMIC_STATUS_LABELS[student.academic_status] ?? student.academic_status}
         </Badge>
         {student.current_level && <Badge color="ibr">{student.current_level.name}</Badge>}
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-1 mb-6 border-b border-gray-200">
-        {(['info', 'academic', 'financial'] as const).map((tab) => (
+        {(['info', 'academic', 'financial', 'timeline'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            className={`px-5 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
               activeTab === tab
                 ? 'border-ibr-600 text-ibr-700'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            {tab === 'info' ? 'Informations' : tab === 'academic' ? 'Parcours académique' : 'Situation financière'}
+            {tab === 'info' ? 'Informations' : tab === 'academic' ? 'Parcours' : tab === 'financial' ? 'Finances' : 'Historique (Timeline)'}
           </button>
         ))}
       </div>
@@ -530,7 +655,8 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
           <Card className="p-6">
             <h3 className="font-semibold text-gray-900 mb-4">Identité</h3>
             <dl className="space-y-2 text-sm">
-              <InfoRow label="Matricule" value={student.matricule} />
+              <InfoRow label="N° permanent" value={student.student_number} />
+              <InfoRow label="Matricule actif" value={student.matricule} />
               <InfoRow label="Sexe" value={student.sex === 'M' ? 'Masculin' : student.sex === 'F' ? 'Féminin' : '-'} />
               <InfoRow label="Date de naissance" value={formatDate(student.birth_date)} />
               <InfoRow label="Lieu de naissance" value={student.birth_place} />
@@ -585,6 +711,7 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
                   <tr>
                     <th className="text-left px-3 py-2 font-medium text-gray-600">Année</th>
                     <th className="text-left px-3 py-2 font-medium text-gray-600">Niveau</th>
+                    <th className="text-left px-3 py-2 font-medium text-gray-600">Matricule Annuel</th>
                     <th className="text-left px-3 py-2 font-medium text-gray-600">Type</th>
                     <th className="text-left px-3 py-2 font-medium text-gray-600">Statut</th>
                     <th className="text-left px-3 py-2 font-medium text-gray-600">Date</th>
@@ -593,13 +720,14 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
                 <tbody className="divide-y divide-gray-100">
                   {enrollments.map((e) => (
                     <tr key={e.id} className="table-row-hover">
-                      <td className="px-3 py-2">{e.academic_year?.name}</td>
+                      <td className="px-3 py-2 font-medium text-gray-900">{e.academic_year?.name}</td>
                       <td className="px-3 py-2">{e.level?.name}</td>
+                      <td className="px-3 py-2 font-mono font-semibold text-ibr-700">{e.enrollment_matricule ?? '-'}</td>
                       <td className="px-3 py-2">{e.enrollment_type === 'inscription' ? 'Inscription' : 'Réinscription'}</td>
                       <td className="px-3 py-2">
                         <Badge color={e.status === 'validated' ? 'green' : 'gray'}>{e.status === 'validated' ? 'Validée' : 'En attente'}</Badge>
                       </td>
-                      <td className="px-3 py-2">{formatDate(e.enrollment_date)}</td>
+                      <td className="px-3 py-2 text-gray-500">{formatDate(e.enrollment_date)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -608,29 +736,31 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
           </Card>
 
           <Card className="p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Notes - {year?.name}</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">Notes globales (Toutes sessions)</h3>
             {grades.length === 0 ? (
               <p className="text-sm text-gray-400">Aucune note saisie.</p>
             ) : (
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className="text-left px-3 py-2 font-medium text-gray-600">Année</th>
                     <th className="text-left px-3 py-2 font-medium text-gray-600">Matière</th>
                     <th className="text-left px-3 py-2 font-medium text-gray-600">Module</th>
-                    <th className="text-left px-3 py-2 font-medium text-gray-600">Note</th>
+                    <th className="text-center px-3 py-2 font-medium text-gray-600">Note /20</th>
                     <th className="text-left px-3 py-2 font-medium text-gray-600">Statut</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {grades.map((g) => (
                     <tr key={g.id} className="table-row-hover">
-                      <td className="px-3 py-2">{g.subject?.name}</td>
+                      <td className="px-3 py-2 text-xs font-semibold">{g.academic_year?.name}</td>
+                      <td className="px-3 py-2 font-medium">{g.subject?.name}</td>
                       <td className="px-3 py-2">{g.subject?.module?.name ?? '-'}</td>
-                      <td className="px-3 py-2 font-medium">
-                        {g.is_absent ? 'Absent' : g.is_not_available ? 'N/A' : g.score !== null ? `${g.score}/20` : '-'}
+                      <td className="px-3 py-2 text-center font-bold">
+                        {g.is_absent ? <span className="text-red-600">Absent</span> : g.is_exempted ? <span className="text-blue-600">Dispensé</span> : g.is_not_available ? 'N/A' : g.score !== null ? `${g.score}/20` : '-'}
                       </td>
                       <td className="px-3 py-2">
-                        <Badge color={g.status === 'validated' ? 'green' : 'gray'}>{g.status}</Badge>
+                        <Badge color={g.status === 'validated' || g.status === 'locked' ? 'green' : g.status === 'submitted' ? 'gold' : 'gray'}>{g.status}</Badge>
                       </td>
                     </tr>
                   ))}
@@ -646,16 +776,16 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
           {feeAccount ? (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Card className="p-5">
-                  <p className="text-sm text-gray-500">Total à payer</p>
+                <Card className="p-5 border-l-4 border-ibr-600">
+                  <p className="text-sm text-gray-500 font-medium">Total à payer ({year?.name})</p>
                   <p className="text-xl font-bold text-gray-900 mt-1">{formatFCFA(feeAccount.total_due)}</p>
                 </Card>
-                <Card className="p-5">
-                  <p className="text-sm text-gray-500">Payé</p>
+                <Card className="p-5 border-l-4 border-green-600">
+                  <p className="text-sm text-gray-500 font-medium">Total payé</p>
                   <p className="text-xl font-bold text-green-600 mt-1">{formatFCFA(feeAccount.total_paid)}</p>
                 </Card>
-                <Card className="p-5">
-                  <p className="text-sm text-gray-500">Reste à payer</p>
+                <Card className="p-5 border-l-4 border-red-600">
+                  <p className="text-sm text-gray-500 font-medium">Reste à payer</p>
                   <p className="text-xl font-bold text-red-600 mt-1">{formatFCFA(feeAccount.remaining)}</p>
                 </Card>
               </div>
@@ -674,7 +804,7 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
                   <tbody className="divide-y divide-gray-100">
                     {feeAccount.student_fee_items?.map((item: any) => (
                       <tr key={item.id} className="table-row-hover">
-                        <td className="px-3 py-2">{item.fee_category?.name}</td>
+                        <td className="px-3 py-2 font-medium text-gray-900">{item.fee_category?.name}</td>
                         <td className="px-3 py-2 text-right">{formatFCFA(item.final_amount)}</td>
                         <td className="px-3 py-2 text-right text-green-600">{formatFCFA(item.amount_paid)}</td>
                         <td className="px-3 py-2 text-right text-red-600">{formatFCFA(item.remaining)}</td>
@@ -686,12 +816,12 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
             </>
           ) : (
             <Card className="p-6">
-              <p className="text-sm text-gray-400">Aucune situation financière pour cette année académique.</p>
+              <p className="text-sm text-gray-400">Aucune situation financière pour l'année académique active.</p>
             </Card>
           )}
 
           <Card className="p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Historique des paiements</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">Historique des versements</h3>
             {payments.length === 0 ? (
               <p className="text-sm text-gray-400">Aucun paiement enregistré.</p>
             ) : (
@@ -699,6 +829,7 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="text-left px-3 py-2 font-medium text-gray-600">Date</th>
+                    <th className="text-left px-3 py-2 font-medium text-gray-600">Année</th>
                     <th className="text-left px-3 py-2 font-medium text-gray-600">Reçu</th>
                     <th className="text-left px-3 py-2 font-medium text-gray-600">Moyen</th>
                     <th className="text-right px-3 py-2 font-medium text-gray-600">Montant</th>
@@ -709,9 +840,10 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
                   {payments.map((p) => (
                     <tr key={p.id} className="table-row-hover">
                       <td className="px-3 py-2">{formatDate(p.payment_date)}</td>
-                      <td className="px-3 py-2 font-medium">{p.receipt_number ?? '-'}</td>
+                      <td className="px-3 py-2 text-xs">{p.academic_year?.name}</td>
+                      <td className="px-3 py-2 font-mono font-semibold text-ibr-700">{p.receipt_number ?? '-'}</td>
                       <td className="px-3 py-2">{p.payment_method}</td>
-                      <td className="px-3 py-2 text-right font-medium">{formatFCFA(p.amount)}</td>
+                      <td className="px-3 py-2 text-right font-bold text-green-600">{formatFCFA(p.amount)}</td>
                       <td className="px-3 py-2">
                         <Badge color={p.status === 'paid' ? 'green' : 'red'}>{p.status === 'paid' ? 'Payé' : p.status}</Badge>
                       </td>
@@ -723,15 +855,88 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
           </Card>
         </div>
       )}
+
+      {activeTab === 'timeline' && (
+        <Card className="p-6">
+          <h3 className="font-semibold text-gray-900 mb-6">Chronologie des événements (Timeline)</h3>
+          
+          <div className="relative pl-6 border-l-2 border-gray-100 ml-4 space-y-6">
+            {timelineEvents.map((evt, idx) => {
+              const IconComp = evt.icon;
+              return (
+                <div key={idx} className="relative">
+                  {/* Point icon */}
+                  <span className={`absolute -left-[35px] top-1 w-6 h-6 rounded-full flex items-center justify-center ring-4 ring-white shadow-sm ${evt.color}`}>
+                    <IconComp className="w-3.5 h-3.5" />
+                  </span>
+                  
+                  <div className="p-4 bg-gray-50/50 rounded-xl border border-gray-50">
+                    <span className="text-xs font-mono font-semibold text-gray-400">{formatDate(evt.date)}</span>
+                    <h4 className="font-bold text-gray-900 text-sm mt-0.5">{evt.title}</h4>
+                    <p className="text-sm text-gray-600 mt-1">{evt.desc}</p>
+                  </div>
+                </div>
+              );
+            })}
+            
+            {timelineEvents.length === 0 && (
+              <p className="text-sm text-gray-400 py-4 text-center">Aucun événement répertorié dans l'historique.</p>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {/* PROMOTION / REINSCRIPTION MODAL */}
+      <Modal open={showPromotionModal} onClose={() => setShowPromotionModal(false)} title="Promouvoir / Réinscrire l'étudiant">
+        <div className="space-y-4">
+          <div className="p-3 bg-ibr-50/50 border border-ibr-100 rounded-xl text-ibr-950 text-xs">
+            <p className="font-bold">Promotion sans duplication :</p>
+            <p className="mt-1">
+              Cette action génère une nouvelle ligne d'inscription annuelle pour l'année ciblée et crée son échéancier financier correspondant. L'historique académique passé reste conservé.
+            </p>
+          </div>
+
+          <div>
+            <label className="label-field">Année académique cible *</label>
+            <select className="input-field" value={promotionForm.target_year_id} onChange={(e) => setPromotionForm({ ...promotionForm, target_year_id: e.target.value })}>
+              <option value="">-- Sélectionner l'année --</option>
+              {allYears.map((y) => <option key={y.id} value={y.id}>{y.name}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="label-field">Niveau d'accueil cible *</label>
+            <select className="input-field" value={promotionForm.target_level_id} onChange={(e) => setPromotionForm({ ...promotionForm, target_level_id: e.target.value })}>
+              <option value="">-- Sélectionner le niveau --</option>
+              {levels.map((l) => <option key={l.id} value={l.id}>{l.name} ({l.code})</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="label-field">Type d'inscription</label>
+            <select className="input-field" value={promotionForm.enrollment_type} onChange={(e) => setPromotionForm({ ...promotionForm, enrollment_type: e.target.value as any })}>
+              <option value="reinscription">Réinscription (Recommandé)</option>
+              <option value="inscription">Nouvelle inscription</option>
+            </select>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button className="btn-secondary" onClick={() => setShowPromotionModal(false)} disabled={promoting}>Annuler</button>
+            <button className="btn-primary" onClick={handlePromote} disabled={promoting}>
+              {promoting ? 'Promotion...' : 'Promouvoir l\'étudiant'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
 
 function InfoRow({ label, value }: { label: string; value: string | null | undefined }) {
   return (
-    <div className="flex justify-between">
-      <dt className="text-gray-500">{label}</dt>
-      <dd className="text-gray-900 font-medium text-right">{value || '-'}</dd>
+    <div className="flex justify-between py-1 border-b border-gray-50 last:border-0">
+      <dt className="text-gray-500 font-medium">{label}</dt>
+      <dd className="text-gray-900 font-semibold text-right">{value || '-'}</dd>
     </div>
   );
 }

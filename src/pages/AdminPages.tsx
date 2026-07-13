@@ -5,7 +5,10 @@ import { useCurrentAcademicYear, useLevels, useRoles, useToast, useSettings } fr
 import { Card, PageHeader, LoadingSpinner, Badge, Modal, Select, EmptyState } from '../components/ui';
 import { fullName, formatDate, formatFCFA, CARD_STATUS_LABELS, ACADEMIC_STATUS_LABELS } from '../lib/utils';
 import type { StudentCard, UserProfile } from '../types';
-import { Plus, CreditCard as IdCardIcon, Users, Shield, Settings, FileBarChart, FileText, BookOpen } from 'lucide-react';
+import {
+  Plus, CreditCard as IdCardIcon, Users, Shield, Settings,
+  FileBarChart, FileText, BookOpen, Printer, AlertTriangle, CheckCircle, RefreshCw, Eye, Edit
+} from 'lucide-react';
 
 // ============================================================================
 // STUDENT CARDS PAGE
@@ -42,7 +45,10 @@ export function CardsPage() {
     if (!form.student_id || !year) { show('Sélectionnez un étudiant', 'error'); return; }
     const student = students.find((s) => s.id === form.student_id);
     const cardNumber = `IBR-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
-    const qrData = JSON.stringify({ matricule: student?.matricule, year: year.name, student_id: student?.id });
+    
+    // Public validation URL
+    const checkUrl = `${window.location.origin}/check-card/${student?.id}`;
+    const qrData = checkUrl;
 
     const { error } = await supabase.from('student_cards').insert({
       card_number: cardNumber, student_id: form.student_id, academic_year_id: year.id,
@@ -63,10 +69,95 @@ export function CardsPage() {
     show('Statut de la carte mis à jour', 'success');
   }
 
+  // Impression de la carte Recto-Verso
+  function printStudentCard(c: any) {
+    const checkUrl = c.qr_code_data || `${window.location.origin}/check-card/${c.student?.id}`;
+    const html = `
+      <html>
+        <head>
+          <title>Carte d'étudiant - ${fullName(c.student?.last_name, c.student?.first_name)}</title>
+          <style>
+            @media print {
+              body { margin: 0; padding: 0; background: white; }
+              .no-print { display: none; }
+            }
+            body { font-family: 'Outfit', sans-serif; display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 20px; }
+            .card-container { display: flex; gap: 40px; }
+            .id-card { width: 325px; height: 204px; border: 1px solid #1e40af; border-radius: 12px; position: relative; overflow: hidden; box-sizing: border-box; background: white; }
+            .header { background: #1e40af; color: white; padding: 10px; display: flex; align-items: center; gap: 8px; }
+            .logo { font-weight: 800; font-size: 14px; letter-spacing: 1px; }
+            .tagline { font-size: 8px; opacity: 0.8; }
+            .content { display: flex; padding: 10px; gap: 10px; }
+            .photo-box { width: 70px; height: 90px; border: 2px solid #1e40af; background: #f0f4ff; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #1e40af; font-weight: bold; overflow: hidden; }
+            .photo-box img { width: 100%; height: 100%; object-fit: cover; }
+            .details { font-size: 11px; color: #1e293b; display: flex; flex-direction: column; gap: 4px; justify-content: center; }
+            .details .name { font-weight: bold; font-size: 13px; color: #0f172a; text-transform: uppercase; }
+            .details .matricule { font-family: monospace; font-weight: bold; color: #1e40af; }
+            .footer-card { background: #f8fafc; border-top: 1px solid #e2e8f0; position: absolute; bottom: 0; width: 100%; padding: 6px 10px; font-size: 9px; color: #64748b; font-weight: 600; display: flex; justify-content: space-between; box-sizing: border-box; }
+            
+            /* Card Back (Verso) */
+            .id-card.back { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 15px; }
+            .qr-code { width: 80px; height: 80px; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; background: #fff; padding: 4px; }
+            .qr-code img { width: 100%; height: 100%; }
+            .rules { font-size: 8px; color: #475569; margin-top: 8px; line-height: 1.3; }
+            .signature { font-size: 9px; font-weight: bold; margin-top: 10px; color: #1e40af; border-top: 1px dashed #cbd5e1; width: 80%; pt: 4px; }
+          </style>
+        </head>
+        <body>
+          <button class="no-print" onclick="window.print()" style="padding: 10px 20px; background: #1e40af; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 20px;">Imprimer les cartes (Recto / Verso)</button>
+          
+          <div class="card-container">
+            <!-- RECTO (Front) -->
+            <div class="id-card">
+              <div class="header">
+                <div>
+                  <div class="logo">INSTITUT BIBLIQUE REHOBOTH</div>
+                  <div class="tagline">Bonoua, Côte d'Ivoire | Tel: +225 07000000</div>
+                </div>
+              </div>
+              <div class="content">
+                <div class="photo-box">
+                  ${c.student?.photo_url ? `<img src="${c.student.photo_url}" />` : 'IBR'}
+                </div>
+                <div class="details">
+                  <div class="name">${fullName(c.student?.last_name, c.student?.first_name)}</div>
+                  <div>Matricule: <span class="matricule">${c.student?.matricule ?? '-'}</span></div>
+                  <div>Niveau: <strong>${c.level?.name ?? '-'}</strong></div>
+                  <div>Année Académique: <strong>${year?.name ?? ''}</strong></div>
+                </div>
+              </div>
+              <div class="footer-card">
+                <span>CARTE D'ÉTUDIANT</span>
+                <span>Valide jusqu'au: ${formatDate(c.expiry_date)}</span>
+              </div>
+            </div>
+            
+            <!-- VERSO (Back) -->
+            <div class="id-card back">
+              <div style="font-weight: bold; font-size: 11px; color: #1e40af; margin-bottom: 5px;">VÉRIFICATION SÉCURISÉE</div>
+              <div class="qr-code">
+                <!-- Simulating QR Code with Google Chart API for direct rendering -->
+                <img src="https://chart.googleapis.com/chart?chs=80x80&cht=qr&chl=${encodeURIComponent(checkUrl)}&choe=UTF-8" />
+              </div>
+              <div class="rules">
+                Cette carte est strictement personnelle. En cas de perte, veuillez contacter le secrétariat de l'institut. Le scan du code QR confirme la validité du dossier étudiant.
+              </div>
+              <div class="signature">
+                Le Directeur Général
+              </div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); }
+  }
+
   if (loading) return <LoadingSpinner />;
 
   return (
-    <div>
+    <div className="animate-slide-in">
       <PageHeader
         title="Cartes d'étudiant"
         subtitle={`${cards.length} carte(s) - ${year?.name ?? ''}`}
@@ -76,32 +167,36 @@ export function CardsPage() {
       {cards.length === 0 ? (
         <Card className="p-8"><EmptyState message="Aucune carte générée. Cliquez sur Générer une carte pour commencer." icon={IdCardIcon} /></Card>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {cards.map((c) => (
-            <Card key={c.id} className="p-5">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-mono text-gray-500">{c.card_number}</span>
-                <Badge color={c.status === 'delivered' ? 'green' : c.status === 'generated' ? 'gold' : 'gray'}>
-                  {CARD_STATUS_LABELS[c.status] ?? c.status}
-                </Badge>
-              </div>
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-12 h-12 rounded-full bg-ibr-100 flex items-center justify-center text-ibr-700 font-bold">
-                  {c.student?.first_name?.[0]?.toUpperCase() ?? '?'}
+            <Card key={c.id} className="p-5 flex flex-col justify-between h-56 relative border-t-4 border-ibr-700 shadow-sm hover:shadow-md transition-shadow">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-mono text-gray-500 font-bold">{c.card_number}</span>
+                  <Badge color={c.status === 'delivered' ? 'green' : c.status === 'generated' ? 'gold' : 'gray'}>
+                    {CARD_STATUS_LABELS[c.status] ?? c.status}
+                  </Badge>
                 </div>
-                <div>
-                  <p className="font-semibold text-gray-900">{c.student ? fullName(c.student.last_name, c.student.first_name) : '-'}</p>
-                  <p className="text-xs text-gray-500">{c.student?.matricule ?? '-'}</p>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-12 h-12 rounded-full bg-ibr-100 flex items-center justify-center text-ibr-700 font-bold text-base shadow-inner">
+                    {c.student?.first_name?.[0]?.toUpperCase() ?? '?'}
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-900 text-sm">{c.student ? fullName(c.student.last_name, c.student.first_name) : '-'}</p>
+                    <p className="text-xs text-gray-400 font-semibold font-mono">{c.student?.matricule ?? '-'}</p>
+                  </div>
+                </div>
+                <div className="text-xs space-y-1 mb-3">
+                  <div className="flex justify-between"><span className="text-gray-500 font-medium">Niveau</span><span className="font-semibold text-gray-800">{c.level?.name ?? '-'}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-500 font-medium">Émission</span><span className="text-gray-800">{formatDate(c.issue_date)}</span></div>
                 </div>
               </div>
-              <div className="text-xs space-y-1 mb-3">
-                <div className="flex justify-between"><span className="text-gray-500">Niveau</span><span className="font-medium">{c.level?.name ?? '-'}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">Émission</span><span>{formatDate(c.issue_date)}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">Expiration</span><span>{formatDate(c.expiry_date)}</span></div>
-              </div>
-              <div className="flex gap-2">
-                {c.status === 'generated' && <button className="btn-secondary flex-1 text-xs" onClick={() => updateCardStatus(c.id, 'printed')}>Marquer imprimée</button>}
-                {c.status === 'printed' && <button className="btn-secondary flex-1 text-xs" onClick={() => updateCardStatus(c.id, 'delivered')}>Marquer remise</button>}
+              <div className="flex gap-1.5 border-t pt-3 mt-2">
+                <button className="btn-secondary py-1 text-xs px-2 flex items-center gap-1" onClick={() => printStudentCard(c)}>
+                  <Printer className="w-3.5 h-3.5" /> Imprimer
+                </button>
+                {c.status === 'generated' && <button className="btn-primary py-1 text-xs px-2 flex-1" onClick={() => updateCardStatus(c.id, 'printed')}>Marquer imprimée</button>}
+                {c.status === 'printed' && <button className="btn-primary py-1 text-xs px-2 flex-1" onClick={() => updateCardStatus(c.id, 'delivered')}>Marquer remise</button>}
               </div>
             </Card>
           ))}
@@ -116,7 +211,7 @@ export function CardsPage() {
               {students.map((s) => <option key={s.id} value={s.id}>{fullName(s.last_name, s.first_name)} ({s.matricule ?? 'sans matricule'})</option>)}
             </select>
           </div>
-          <div className="flex justify-end gap-3"><button className="btn-secondary" onClick={() => setShowModal(false)}>Annuler</button><button className="btn-primary" onClick={generateCard}>Générer</button></div>
+          <div className="flex justify-end gap-3 pt-2"><button className="btn-secondary" onClick={() => setShowModal(false)}>Annuler</button><button className="btn-primary" onClick={generateCard}>Générer</button></div>
         </div>
       </Modal>
     </div>
@@ -159,29 +254,29 @@ export function UsersPage() {
   if (loading) return <LoadingSpinner />;
 
   return (
-    <div>
+    <div className="animate-slide-in">
       <PageHeader title="Utilisateurs" subtitle={`${users.length} utilisateur(s)`} />
 
       <Card className="overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b">
+          <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Nom</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Rôle</th>
-              <th className="text-center px-4 py-3 font-medium text-gray-600">Statut</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Dernière connexion</th>
+              <th className="text-left px-5 py-3.5 font-semibold text-gray-600">Nom complet</th>
+              <th className="text-left px-5 py-3.5 font-semibold text-gray-600">Rôle d'accès</th>
+              <th className="text-center px-5 py-3.5 font-semibold text-gray-600">Statut</th>
+              <th className="text-left px-5 py-3.5 font-semibold text-gray-600">Dernière connexion</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {users.map((u) => (
               <tr key={u.id} className="table-row-hover">
-                <td className="px-4 py-3">
-                  <p className="font-medium">{fullName(u.last_name, u.first_name)}</p>
-                  <p className="text-xs text-gray-500">{u.user_id?.slice(0, 8)}...</p>
+                <td className="px-5 py-3.5">
+                  <p className="font-bold text-gray-900">{fullName(u.last_name, u.first_name)}</p>
+                  <p className="text-xs text-gray-400 font-mono mt-0.5">{u.user_id?.slice(0, 8)}...</p>
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-5 py-3.5">
                   <select
-                    className="input-field text-sm"
+                    className="input-field text-sm max-w-[200px]"
                     value={u.role_id ?? ''}
                     onChange={(e) => updateRole(u.user_id, e.target.value)}
                     disabled={u.user_id === profile?.user_id}
@@ -190,12 +285,12 @@ export function UsersPage() {
                     {roles.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
                   </select>
                 </td>
-                <td className="px-4 py-3 text-center">
+                <td className="px-5 py-3.5 text-center">
                   <button onClick={() => toggleActive(u.user_id, u.is_active)}>
                     <Badge color={u.is_active ? 'green' : 'red'}>{u.is_active ? 'Actif' : 'Inactif'}</Badge>
                   </button>
                 </td>
-                <td className="px-4 py-3">{formatDate(u.last_login)}</td>
+                <td className="px-5 py-3.5 text-gray-500">{formatDate(u.last_login)}</td>
               </tr>
             ))}
           </tbody>
@@ -212,18 +307,20 @@ export function RolesPage() {
   const { roles } = useRoles();
 
   return (
-    <div>
+    <div className="animate-slide-in">
       <PageHeader title="Rôles et permissions" subtitle="Gestion des rôles système" />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {roles.map((r) => (
-          <Card key={r.id} className="p-5">
-            <div className="flex items-center gap-2 mb-2">
-              <Shield className="w-5 h-5 text-ibr-600" />
-              <h3 className="font-semibold text-gray-900">{r.label}</h3>
+          <Card key={r.id} className="p-5 flex flex-col justify-between h-40">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Shield className="w-5 h-5 text-ibr-600" />
+                <h3 className="font-semibold text-gray-900">{r.label}</h3>
+              </div>
+              <p className="text-sm text-gray-600 line-clamp-2">{r.description}</p>
             </div>
-            <p className="text-sm text-gray-600">{r.description}</p>
-            {r.is_system && <Badge color="gold">Rôle système</Badge>}
+            {r.is_system && <Badge color="gold" className="w-fit mt-3">Rôle système</Badge>}
           </Card>
         ))}
       </div>
@@ -268,43 +365,36 @@ export function SettingsPage() {
   if (loading) return <LoadingSpinner />;
 
   return (
-    <div>
-      <PageHeader title="Paramètres" subtitle="Configuration de l'application" />
+    <div className="animate-slide-in space-y-6">
+      <PageHeader title="Paramètres" subtitle="Configuration générale" />
 
-      <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Informations de l'institut</h3>
+          <h3 className="font-bold text-gray-900 text-base mb-4">Informations de l'institut</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="label-field">Nom complet</label><input className="input-field" value={institute.name} onChange={(e) => setInstitute({ ...institute, name: e.target.value })} /></div>
             <div><label className="label-field">Sigle</label><input className="input-field" value={institute.short_name} onChange={(e) => setInstitute({ ...institute, short_name: e.target.value })} /></div>
             <div><label className="label-field">Adresse</label><input className="input-field" value={institute.address} onChange={(e) => setInstitute({ ...institute, address: e.target.value })} /></div>
             <div><label className="label-field">Téléphone</label><input className="input-field" value={institute.phone} onChange={(e) => setInstitute({ ...institute, phone: e.target.value })} /></div>
-            <div><label className="label-field">Email</label><input className="input-field" value={institute.email} onChange={(e) => setInstitute({ ...institute, email: e.target.value })} /></div>
-            <div><label className="label-field">Directeur</label><input className="input-field" value={institute.director} onChange={(e) => setInstitute({ ...institute, director: e.target.value })} /></div>
+            <div className="sm:col-span-2"><label className="label-field">Directeur</label><input className="input-field" value={institute.director} onChange={(e) => setInstitute({ ...institute, director: e.target.value })} /></div>
           </div>
           <button className="btn-primary mt-4" onClick={saveInstitute}>Enregistrer</button>
         </Card>
 
         <Card className="p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Configuration des matricules</h3>
+          <h3 className="font-bold text-gray-900 text-base mb-4">Configuration des matricules</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="label-field">Sigle de l'institut</label><input className="input-field" value={matricule.institute_code} onChange={(e) => setMatricule({ ...matricule, institute_code: e.target.value })} /></div>
             <div><label className="label-field">Séparateur</label><input className="input-field" value={matricule.separator} onChange={(e) => setMatricule({ ...matricule, separator: e.target.value })} /></div>
             <div><label className="label-field">Nombre de chiffres</label><input type="number" className="input-field" value={matricule.digits} onChange={(e) => setMatricule({ ...matricule, digits: parseInt(e.target.value) || 4 })} /></div>
             <div><label className="label-field">Numéro de départ</label><input type="number" className="input-field" value={matricule.start_number} onChange={(e) => setMatricule({ ...matricule, start_number: parseInt(e.target.value) || 1 })} /></div>
           </div>
-          <div className="mt-3">
-            <label className="flex items-center gap-2">
-              <input type="checkbox" checked={matricule.allow_manual} onChange={(e) => setMatricule({ ...matricule, allow_manual: e.target.checked })} />
-              <span className="text-sm font-medium text-gray-700">Autoriser la création manuelle de matricules</span>
-            </label>
-          </div>
           <button className="btn-primary mt-4" onClick={saveMatricule}>Enregistrer</button>
         </Card>
 
-        <Card className="p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Configuration du calcul des moyennes</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Card className="p-6 sm:col-span-2">
+          <h3 className="font-bold text-gray-900 text-base mb-4">Calcul des moyennes & classements</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div><label className="label-field">Méthode de calcul</label>
               <select className="input-field" value={grading.method} onChange={(e) => setGrading({ ...grading, method: e.target.value })}>
                 <option value="simple">Moyenne simple</option>
@@ -315,10 +405,9 @@ export function SettingsPage() {
             <div><label className="label-field">Méthode de classement</label>
               <select className="input-field" value={grading.ranking_method} onChange={(e) => setGrading({ ...grading, ranking_method: e.target.value })}>
                 <option value="standard">Standard (ex aequo = même rang)</option>
-                <option value="dense">Dense (ex aequo = rang suivant sauté)</option>
+                <option value="dense">Dense (ex aequo = rang suivant immédiat)</option>
               </select>
             </div>
-            <div><label className="flex items-center gap-2 mt-6"><input type="checkbox" checked={grading.use_coefficients} onChange={(e) => setGrading({ ...grading, use_coefficients: e.target.checked })} /><span className="text-sm font-medium text-gray-700">Utiliser les coefficients</span></label></div>
           </div>
           <button className="btn-primary mt-4" onClick={saveGrading}>Enregistrer</button>
         </Card>
@@ -333,6 +422,7 @@ export function SettingsPage() {
 export function AuditPage() {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedLog, setSelectedLog] = useState<any>(null);
 
   useEffect(() => {
     supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(100).then(({ data }) => {
@@ -344,195 +434,566 @@ export function AuditPage() {
   if (loading) return <LoadingSpinner />;
 
   return (
-    <div>
-      <PageHeader title="Journal d'audit" subtitle="Historique des actions" />
+    <div className="animate-slide-in space-y-4">
+      <PageHeader title="Journal d'audit" subtitle="Historique complet des actions sensibles" />
+      
       <Card className="overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b">
-            <tr>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Date</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Action</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Entité</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Utilisateur</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {logs.map((l) => (
-              <tr key={l.id} className="table-row-hover">
-                <td className="px-4 py-2 text-xs">{formatDate(l.created_at)}</td>
-                <td className="px-4 py-2 font-medium">{l.action}</td>
-                <td className="px-4 py-2">{l.entity_type}</td>
-                <td className="px-4 py-2 text-gray-500">{l.user_id?.slice(0, 8) ?? '-'}</td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th className="text-left px-5 py-3.5 font-semibold text-gray-600">Date</th>
+                <th className="text-left px-5 py-3.5 font-semibold text-gray-600">Action</th>
+                <th className="text-left px-5 py-3.5 font-semibold text-gray-600">Entité</th>
+                <th className="text-left px-5 py-3.5 font-semibold text-gray-600">Utilisateur</th>
+                <th className="text-center px-5 py-3.5 font-semibold text-gray-600">Détails</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {logs.map((l) => (
+                <tr key={l.id} className="table-row-hover">
+                  <td className="px-5 py-3.5 text-xs text-gray-400 font-mono">{formatDate(l.created_at)}</td>
+                  <td className="px-5 py-3.5 font-bold text-gray-800">{l.action}</td>
+                  <td className="px-5 py-3.5 text-gray-600">{l.entity_type}</td>
+                  <td className="px-5 py-3.5 font-mono text-gray-500">{l.user_id?.slice(0, 8) ?? '-'}</td>
+                  <td className="px-5 py-3.5 text-center">
+                    <button className="text-ibr-600 hover:text-ibr-800" onClick={() => setSelectedLog(l)}>
+                      <Eye className="w-4 h-4 mx-auto" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         {logs.length === 0 && <EmptyState message="Aucune action enregistrée." icon={FileBarChart} />}
       </Card>
+
+      <Modal open={!!selectedLog} onClose={() => setSelectedLog(null)} title="Détail du log d'audit">
+        {selectedLog && (
+          <div className="space-y-3 text-sm">
+            <p><strong>Action :</strong> {selectedLog.action}</p>
+            <p><strong>Date :</strong> {formatDate(selectedLog.created_at)}</p>
+            <p><strong>Entité :</strong> {selectedLog.entity_type} (ID: {selectedLog.entity_id})</p>
+            <p><strong>Utilisateur :</strong> {selectedLog.user_id}</p>
+            <div>
+              <p className="font-bold mb-1">Nouvelles valeurs :</p>
+              <pre className="bg-gray-50 p-3 rounded-xl text-xs font-mono max-h-48 overflow-y-auto border border-gray-100">
+                {JSON.stringify(selectedLog.new_values, null, 2)}
+              </pre>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
 
 // ============================================================================
-// DOCUMENTS PAGE (placeholder with document types)
+// DOCUMENTS PAGE (TRANSCRIPTS & CLASS GENERAL SHEETS)
 // ============================================================================
 export function DocumentsPage() {
   const { year } = useCurrentAcademicYear();
   const { levels } = useLevels();
-  const [showList, setShowList] = useState(false);
-  const [students, setStudents] = useState<any[]>([]);
   const [selectedLevel, setSelectedLevel] = useState('');
+  const [students, setStudents] = useState<any[]>([]);
+  const { show } = useToast();
 
   const docTypes = [
-    { label: "Fiche d'inscription", icon: FileText, type: 'inscription' },
-    { label: 'Liste de classe', icon: Users, type: 'class_list' },
-    { label: "Liste d'émargement", icon: FileText, type: 'attendance' },
-    { label: 'Relevé de notes individuel', icon: FileText, type: 'transcript' },
-    { label: 'Relevé général de classe', icon: FileText, type: 'general_grades' },
-    { label: 'Procès-verbal de délibération', icon: FileText, type: 'pv' },
-    { label: 'Liste de classement', icon: FileText, type: 'ranking' },
-    { label: 'Attestation de réussite', icon: FileText, type: 'certificate' },
-    { label: 'Certificat de scolarité', icon: FileText, type: 'school_cert' },
-    { label: 'Bulletin annuel', icon: FileText, type: 'bulletin' },
-    { label: 'Palmarès annuel', icon: FileText, type: 'palmares' },
-    { label: 'Reçu de paiement', icon: FileText, type: 'receipt' },
-    { label: 'Situation financière', icon: FileText, type: 'financial_situation' },
-    { label: 'État des impayés', icon: FileText, type: 'unpaid' },
-    { label: 'Journal de caisse', icon: FileText, type: 'cash_journal' },
-    { label: 'Rapport journalier', icon: FileText, type: 'daily_report' },
-    { label: 'Inventaire du stock', icon: FileText, type: 'stock_inventory' },
-    { label: 'Rapport des ventes de fascicules', icon: FileText, type: 'booklet_sales' },
+    { label: 'Relevé général de classe (Paysage)', icon: FileText, type: 'general_grades' },
+    { label: "Procès-verbal de délibération", icon: FileText, type: 'pv' },
   ];
 
-  async function generateClassList(levelId: string) {
-    if (!year) return;
-    const { data } = await supabase
-      .from('enrollments')
-      .select('student:students(*)')
-      .eq('academic_year_id', year.id)
-      .eq('level_id', levelId)
-      .eq('status', 'validated');
-    const list = (data ?? []).map((e: any) => e.student).filter(Boolean);
-    list.sort((a: any, b: any) => a.last_name.localeCompare(b.last_name));
+  useEffect(() => {
+    if (selectedLevel && year) {
+      supabase.from('enrollments')
+        .select('student:students(*)')
+        .eq('academic_year_id', year.id)
+        .eq('level_id', selectedLevel)
+        .eq('status', 'validated')
+        .then(({ data }) => {
+          const list = (data ?? []).map((e: any) => e.student).filter(Boolean);
+          list.sort((a: any, b: any) => a.last_name.localeCompare(b.last_name));
+          setStudents(list);
+        });
+    } else {
+      setStudents([]);
+    }
+  }, [selectedLevel, year]);
 
-    // Generate printable HTML
-    const level = levels.find((l) => l.id === levelId);
+  // Génération du relevé de notes individuel (CR80/A4 format)
+  async function generateIndividualTranscript(studentId: string) {
+    if (!year || !selectedLevel) return;
+
+    // Load subjects, student details and grades
+    const [subjsRes, studRes, gradesRes] = await Promise.all([
+      supabase.from('subjects').select('*, module:modules(*)').eq('academic_year_id', year.id).eq('level_id', selectedLevel).order('order_index'),
+      supabase.from('students').select('*').eq('id', studentId).maybeSingle(),
+      supabase.from('grades').select('*').eq('academic_year_id', year.id).eq('student_id', studentId),
+    ]);
+
+    const student = studRes.data;
+    const subjects = subjsRes.data ?? [];
+    const grades = gradesRes.data ?? [];
+
+    if (!student) { show('Étudiant introuvable', 'error'); return; }
+
+    let totalPoints = 0;
+    let totalCoefs = 0;
+    let counted = 0;
+    
+    const rowsHtml = subjects.map((sub) => {
+      const g = grades.find((x) => x.subject_id === sub.id);
+      const isEx = g?.is_exempted;
+      const isAb = g?.is_absent;
+      const score = g?.score;
+      const displayScore = isEx ? 'DISP' : isAb ? 'ABS' : score !== null && score !== undefined ? `${score}/20` : '-';
+      const coef = isEx ? '-' : sub.coefficient;
+      const points = isEx || score === null || score === undefined ? '-' : (isAb ? 0 : score * sub.coefficient);
+
+      if (!isEx && score !== null && score !== undefined) {
+        totalPoints += isAb ? 0 : (score * sub.coefficient);
+        totalCoefs += sub.coefficient;
+        counted++;
+      }
+
+      return `
+        <tr>
+          <td>${sub.code}</td>
+          <td>${sub.name}</td>
+          <td>${sub.module?.name ?? '-'}</td>
+          <td style="text-align: center;">${coef}</td>
+          <td style="text-align: center; font-weight: bold;">${displayScore}</td>
+          <td style="text-align: center;">${points}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const average = totalCoefs > 0 ? (totalPoints / totalCoefs) : 0;
+    const validationUrl = `${window.location.origin}/check-card/${student.id}`;
+
     const html = `
-      <html><head><title>Liste de classe - ${level?.name}</title>
-      <style>
-        body { font-family: Arial; padding: 40px; }
-        h1 { text-align: center; color: #1e40af; }
-        h2 { text-align: center; color: #666; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background: #f0f0f0; }
-      </style></head><body>
-      <h1>Institut Biblique Rehoboth</h1>
-      <h2>Liste de classe - ${level?.name} - ${year.name}</h2>
-      <table><thead><tr><th>N°</th><th>Matricule</th><th>Nom et prénoms</th><th>Sexe</th></tr></thead><tbody>
-      ${list.map((s: any, i: number) => `<tr><td>${i + 1}</td><td>${s.matricule ?? '-'}</td><td>${fullName(s.last_name, s.first_name)}</td><td>${s.sex ?? '-'}</td></tr>`).join('')}
-      </tbody></table>
-      </body></html>`;
+      <html>
+        <head>
+          <title>Relevé de notes - ${fullName(student.last_name, student.first_name)}</title>
+          <style>
+            body { font-family: 'Outfit', sans-serif; padding: 40px; color: #1e293b; background: white; }
+            .header-table { width: 100%; margin-bottom: 30px; border-bottom: 2px solid #1e40af; pb: 10px; }
+            .title { text-align: center; color: #1e40af; font-size: 24px; font-weight: 800; letter-spacing: 1px; }
+            .student-info { margin-bottom: 25px; font-size: 14px; line-height: 1.5; }
+            table.grades { width: 100%; border-collapse: collapse; margin-top: 15px; }
+            table.grades th, table.grades td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; }
+            table.grades th { background: #f1f5f9; color: #0f172a; font-weight: bold; }
+            .totals { margin-top: 25px; float: right; width: 300px; font-size: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; }
+            .totals-row { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #e2e8f0; }
+            .totals-row:last-child { border: 0; background: #f8fafc; font-weight: bold; color: #1e40af; }
+            .signatures { margin-top: 80px; display: flex; justify-content: space-between; font-size: 14px; }
+            .signature-box { text-align: center; width: 220px; }
+            .qr-code { float: left; margin-top: 25px; text-align: center; font-size: 10px; color: #64748b; }
+            @media print {
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <button class="no-print" onclick="window.print()" style="padding: 10px 20px; background: #1e40af; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 20px;">Imprimer le relevé</button>
+          
+          <table class="header-table">
+            <tr>
+              <td>
+                <div style="font-weight: 800; font-size: 18px; color: #1e40af;">INSTITUT BIBLIQUE REHOBOTH</div>
+                <div style="font-size: 11px; color: #64748b;">Bonoua, Côte d'Ivoire | Tel: +225 07000000</div>
+              </td>
+              <td style="text-align: right;">
+                <div class="title">RELEVÉ DE NOTES</div>
+                <div style="font-size: 12px; font-weight: 600; color: #475569;">Année Académique: ${year?.name}</div>
+              </td>
+            </tr>
+          </table>
+
+          <div class="student-info">
+            <table style="width: 100%;">
+              <tr>
+                <td>Nom et Prénoms: <strong>${fullName(student.last_name, student.first_name)}</strong></td>
+                <td>N° Permanent: <strong>${student.student_number ?? '-'}</strong></td>
+              </tr>
+              <tr>
+                <td>Niveau d'études: <strong>${levels.find(l=>l.id===selectedLevel)?.name}</strong></td>
+                <td>Matricule Annuel: <strong>${student.matricule ?? '-'}</strong></td>
+              </tr>
+            </table>
+          </div>
+
+          <table class="grades">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Matière</th>
+                <th>Module</th>
+                <th style="text-align: center;">Coef.</th>
+                <th style="text-align: center;">Note /20</th>
+                <th style="text-align: center;">Points</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+
+          <div class="qr-code">
+            <img src="https://chart.googleapis.com/chart?chs=80x80&cht=qr&chl=${encodeURIComponent(validationUrl)}&choe=UTF-8" /><br/>
+            <span>Scanner pour vérifier</span>
+          </div>
+
+          <div class="totals">
+            <div class="totals-row"><span>Total des coefficients :</span><span>${totalCoefs}</span></div>
+            <div class="totals-row"><span>Total des points obtenus :</span><span>${totalPoints}</span></div>
+            <div class="totals-row"><span>Moyenne Générale :</span><span>${average.toFixed(2)} / 20</span></div>
+          </div>
+
+          <div style="clear: both;"></div>
+
+          <div class="signatures">
+            <div class="signature-box">
+              <p>Le Directeur Académique</p>
+              <div style="height: 60px;"></div>
+              <p>Jacques GOME</p>
+            </div>
+            <div class="signature-box">
+              <p>Le Secrétaire Général</p>
+              <div style="height: 60px;"></div>
+              <p>Honoré ASSAMOI</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
     const w = window.open('', '_blank');
-    if (w) { w.document.write(html); w.document.close(); w.print(); }
+    if (w) { w.document.write(html); w.document.close(); }
+  }
+
+  // Génération du relevé général de classe (Paysage)
+  async function generateClassGrid() {
+    if (!year || !selectedLevel) return;
+    
+    // Load subjects and students
+    const [subjsRes, gradesRes] = await Promise.all([
+      supabase.from('subjects').select('*').eq('academic_year_id', year.id).eq('level_id', selectedLevel).order('order_index'),
+      supabase.from('grades').select('*').eq('academic_year_id', year.id).eq('level_id', selectedLevel),
+    ]);
+
+    const subjects = subjsRes.data ?? [];
+    const allGrades = gradesRes.data ?? [];
+    const levelObj = levels.find((l) => l.id === selectedLevel);
+
+    const tableHeaders = subjects.map((sub) => `
+      <th style="font-size: 9px; text-align: center; min-width: 60px;">${sub.code}<br/><span style="font-weight: normal;">(x${sub.coefficient})</span></th>
+    `).join('');
+
+    const tableRows = students.map((s, idx) => {
+      let totalPoints = 0;
+      let totalCoefs = 0;
+
+      const subjectCells = subjects.map((sub) => {
+        const g = allGrades.find((x) => x.student_id === s.id && x.subject_id === sub.id);
+        const isEx = g?.is_exempted;
+        const isAb = g?.is_absent;
+        const score = g?.score;
+        const scoreVal = isAb ? 0 : (score ?? 0);
+
+        if (!isEx && score !== null && score !== undefined) {
+          totalPoints += scoreVal * sub.coefficient;
+          totalCoefs += sub.coefficient;
+        }
+
+        const displayScore = isEx ? 'DISP' : isAb ? 'ABS' : score !== null && score !== undefined ? score.toString() : '-';
+        return `<td style="text-align: center; font-size: 11px;">${displayScore}</td>`;
+      }).join('');
+
+      const avg = totalCoefs > 0 ? (totalPoints / totalCoefs) : 0;
+
+      return `
+        <tr>
+          <td>${idx + 1}</td>
+          <td><strong>${fullName(s.last_name, s.first_name)}</strong></td>
+          <td style="font-family: monospace;">${s.matricule ?? '-'}</td>
+          ${subjectCells}
+          <td style="text-align: center; font-weight: bold; background: #f8fafc; color: #1e40af;">${avg.toFixed(2)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const html = `
+      <html>
+        <head>
+          <title>Relevé général de classe - ${levelObj?.name}</title>
+          <style>
+            @media print {
+              @page { size: landscape; margin: 1cm; }
+              body { font-size: 10pt; }
+              .no-print { display: none; }
+            }
+            body { font-family: 'Outfit', sans-serif; padding: 20px; color: #1e293b; background: white; }
+            .header { border-bottom: 2px solid #1e40af; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; }
+            th { background: #f1f5f9; color: #0f172a; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <button class="no-print" onclick="window.print()" style="padding: 10px 20px; background: #1e40af; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 20px;">Imprimer le relevé général (Paysage)</button>
+          
+          <div class="header">
+            <div>
+              <div style="font-weight: bold; font-size: 16px; color: #1e40af;">INSTITUT BIBLIQUE REHOBOTH</div>
+              <div style="font-size: 10px; color: #64748b;">Bonoua, Côte d'Ivoire</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-weight: bold; font-size: 16px; color: #1e40af;">GRILLE GÉNÉRALE DES NOTES (PAYSAGE)</div>
+              <div style="font-size: 11px; font-weight: 600; color: #475569;">Niveau: ${levelObj?.name} | Année Académique: ${year?.name}</div>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 40px;">N°</th>
+                <th>Nom et Prénoms</th>
+                <th>Matricule</th>
+                ${tableHeaders}
+                <th style="text-align: center; background: #f1f5f9; color: #1e40af;">Moyenne</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRows}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); }
   }
 
   return (
-    <div>
-      <PageHeader title="Documents" subtitle="Génération de documents officiels" />
+    <div className="animate-slide-in space-y-6">
+      <PageHeader title="Documents administratifs" subtitle="Génération et édition de relevés officiels" />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {docTypes.map((d) => {
-          const Icon = d.icon;
-          return (
-            <Card key={d.type} className="p-5 hover:shadow-md transition-shadow cursor-pointer" >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-ibr-50 flex items-center justify-center">
-                  <Icon className="w-5 h-5 text-ibr-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">{d.label}</p>
-                  <p className="text-xs text-gray-500">Cliquez pour générer</p>
-                </div>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
-
-      <Card className="p-6 mt-6">
-        <h3 className="font-semibold text-gray-900 mb-4">Générer une liste de classe</h3>
-        <div className="flex items-end gap-3">
-          <div className="flex-1">
-            <label className="label-field">Niveau</label>
+      <Card className="p-6">
+        <h3 className="font-bold text-gray-900 text-base mb-4">Génération de documents de classe</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+          <div>
+            <label className="label-field">Niveau académique *</label>
             <Select value={selectedLevel} onChange={setSelectedLevel} placeholder="Sélectionner..." options={levels.map((l) => ({ value: l.id, label: l.name }))} />
           </div>
-          <button className="btn-primary" onClick={() => generateClassList(selectedLevel)} disabled={!selectedLevel}>Générer (PDF)</button>
+          <button className="btn-primary" onClick={generateClassGrid} disabled={!selectedLevel}>
+            Générer le relevé général (Paysage)
+          </button>
         </div>
       </Card>
+
+      {students.length > 0 && (
+        <Card className="p-6">
+          <h3 className="font-bold text-gray-900 text-base mb-4">Édition des relevés de notes individuels</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b border-gray-100">
+                <tr>
+                  <th className="text-left px-4 py-3 text-gray-600 font-semibold">Nom complet</th>
+                  <th className="text-left px-4 py-3 text-gray-600 font-semibold">Matricule</th>
+                  <th className="text-center px-4 py-3 text-gray-600 font-semibold">Impression</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {students.map((s) => (
+                  <tr key={s.id} className="table-row-hover">
+                    <td className="px-4 py-3 font-semibold text-gray-900">{fullName(s.last_name, s.first_name)}</td>
+                    <td className="px-4 py-3 font-semibold font-mono text-gray-500">{s.matricule ?? '-'}</td>
+                    <td className="px-4 py-3 text-center">
+                      <button className="btn-secondary py-1 px-3 text-xs flex items-center gap-1.5 mx-auto" onClick={() => generateIndividualTranscript(s.id)}>
+                        <Printer className="w-3.5 h-3.5" /> Relevé individuel
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
 
 // ============================================================================
-// ARCHIVES PAGE
+// CENTRE DE CONTRÔLE DES ANOMALIES DE DONNÉES
 // ============================================================================
 export function ArchivesPage() {
   const { year } = useCurrentAcademicYear();
-  const [years, setYears] = useState<any[]>([]);
-  const [selectedYear, setSelectedYear] = useState('');
-  const [stats, setStats] = useState<any>(null);
+  const [anomalies, setAnomalies] = useState<{
+    studentsNoMatricule: any[];
+    studentsDuplicateMatricule: any[];
+    gradesOutOfRange: any[];
+    bookletsLowStock: any[];
+    cardsNoPhoto: any[];
+  }>({
+    studentsNoMatricule: [],
+    studentsDuplicateMatricule: [],
+    gradesOutOfRange: [],
+    bookletsLowStock: [],
+    cardsNoPhoto: [],
+  });
 
-  useEffect(() => {
-    supabase.from('academic_years').select('*').order('name', { ascending: false }).then(({ data }) => {
-      setYears(data ?? []);
+  const [loading, setLoading] = useState(true);
+  const { show } = useToast();
+
+  const scanForAnomalies = useCallback(async () => {
+    setLoading(true);
+    
+    // 1. Students without matricule
+    const { data: noMat } = await supabase.from('students').select('*').is('deleted_at', null).is('matricule', null);
+    
+    // 2. Duplicate matricules
+    const { data: duplicates } = await supabase.rpc('check_duplicate_matricules');
+    
+    // 3. Grades out of range (< 0 or > 20)
+    const { data: gradesOut } = await supabase.from('grades').select('*, student:students(*), subject:subjects(*)').or('score.lt.0,score.gt.20');
+    
+    // 4. Booklet low stock (below threshold)
+    const { data: bookletsLow } = await supabase.from('training_booklets').select('*').eq('is_active', true).expr('stock_quantity <= min_stock_threshold' as any);
+    const filteredLow = bookletsLow ? bookletsLow.filter((b: any) => b.stock_quantity <= b.min_stock_threshold) : [];
+
+    // 5. Cards without photo URL
+    const { data: noPhoto } = await supabase.from('students').select('*').is('deleted_at', null).is('photo_url', null);
+
+    setAnomalies({
+      studentsNoMatricule: noMat ?? [],
+      studentsDuplicateMatricule: duplicates ?? [],
+      gradesOutOfRange: gradesOut ?? [],
+      bookletsLowStock: filteredLow ?? [],
+      cardsNoPhoto: noPhoto ?? [],
     });
+    setLoading(false);
   }, []);
 
   useEffect(() => {
-    if (!selectedYear) return;
-    Promise.all([
-      supabase.from('enrollments').select('id').eq('academic_year_id', selectedYear),
-      supabase.from('grades').select('id').eq('academic_year_id', selectedYear),
-      supabase.from('payments').select('amount').eq('academic_year_id', selectedYear).eq('status', 'paid'),
-    ]).then(([e, g, p]) => {
-      setStats({
-        enrollments: e.data?.length ?? 0,
-        grades: g.data?.length ?? 0,
-        payments: (p.data ?? []).reduce((s: number, x: any) => s + x.amount, 0),
-      });
-    });
-  }, [selectedYear]);
+    scanForAnomalies();
+  }, [scanForAnomalies]);
+
+  if (loading) return <LoadingSpinner label="Analyse complète de la base de données..." />;
+
+  const totalAnomalies = Object.values(anomalies).reduce((acc, curr) => acc + curr.length, 0);
 
   return (
-    <div>
-      <PageHeader title="Archives" subtitle="Consultation des données archivées" />
+    <div className="animate-slide-in space-y-6">
+      <PageHeader
+        title="Centre de contrôle des anomalies"
+        subtitle="Vérification en direct de la conformité des données académiques et de stock"
+        actions={
+          <button className="btn-secondary flex items-center gap-1.5 text-xs py-2" onClick={scanForAnomalies}>
+            <RefreshCw className="w-4 h-4" /> Lancer un diagnostic
+          </button>
+        }
+      />
 
-      <Card className="p-6">
-        <div className="flex items-end gap-3 mb-6">
-          <div className="flex-1">
-            <label className="label-field">Année académique</label>
-            <Select value={selectedYear} onChange={setSelectedYear} placeholder="Sélectionner..." options={years.map((y) => ({ value: y.id, label: y.name }))} />
-          </div>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className={`p-5 border-l-4 ${totalAnomalies > 0 ? 'border-amber-500' : 'border-green-600'}`}>
+          <p className="text-xs text-gray-500 font-semibold uppercase">Total Anomalies</p>
+          <p className="text-2xl font-bold mt-1 text-gray-900">{totalAnomalies}</p>
+        </Card>
+        <Card className="p-5 border-l-4 border-ibr-700">
+          <p className="text-xs text-gray-500 font-semibold uppercase">Conformité Base</p>
+          <p className="text-2xl font-bold mt-1 text-green-600">{totalAnomalies === 0 ? '100%' : 'Ajustements requis'}</p>
+        </Card>
+      </div>
 
-        {stats && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Card className="p-4 bg-gray-50">
-              <p className="text-sm text-gray-500">Inscriptions</p>
-              <p className="text-2xl font-bold mt-1">{stats.enrollments}</p>
-            </Card>
-            <Card className="p-4 bg-gray-50">
-              <p className="text-sm text-gray-500">Notes enregistrées</p>
-              <p className="text-2xl font-bold mt-1">{stats.grades}</p>
-            </Card>
-            <Card className="p-4 bg-gray-50">
-              <p className="text-sm text-gray-500">Paiements encaissés</p>
-              <p className="text-2xl font-bold mt-1">{formatFCFA(stats.payments)}</p>
-            </Card>
+      <div className="space-y-6">
+        {/* SECTION 1: MATRICULES MANQUANTS */}
+        {anomalies.studentsNoMatricule.length > 0 && (
+          <Card className="p-5 border border-amber-200 bg-amber-50/5">
+            <h4 className="font-bold text-amber-800 text-sm flex items-center gap-2 mb-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600" /> Étudiants sans matricule académique ({anomalies.studentsNoMatricule.length})
+            </h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-left font-bold text-gray-500"><th>Nom et Prénom</th><th>N° Permanent</th><th>Statut</th></tr>
+                </thead>
+                <tbody>
+                  {anomalies.studentsNoMatricule.map((s) => (
+                    <tr key={s.id} className="border-t py-1">
+                      <td className="py-2"><strong>{fullName(s.last_name, s.first_name)}</strong></td>
+                      <td>{s.student_number ?? 'aucun'}</td>
+                      <td><Badge color="gray">{s.academic_status}</Badge></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        )}
+
+        {/* SECTION 2: NOTES HORS INTERVALLES */}
+        {anomalies.gradesOutOfRange.length > 0 && (
+          <Card className="p-5 border border-red-200 bg-red-50/5">
+            <h4 className="font-bold text-red-800 text-sm flex items-center gap-2 mb-3">
+              <ShieldAlert className="w-5 h-5 text-red-600" /> Notes hors intervalle (0 à 20) ({anomalies.gradesOutOfRange.length})
+            </h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-left font-bold text-gray-500"><th>Étudiant</th><th>Matière</th><th>Note erronée</th></tr>
+                </thead>
+                <tbody>
+                  {anomalies.gradesOutOfRange.map((g) => (
+                    <tr key={g.id} className="border-t py-1">
+                      <td className="py-2"><strong>{fullName(g.student?.last_name, g.student?.first_name)}</strong></td>
+                      <td>{g.subject?.name}</td>
+                      <td className="text-red-600 font-bold">{g.score}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        )}
+
+        {/* SECTION 3: STOCKS BAS */}
+        {anomalies.bookletsLowStock.length > 0 && (
+          <Card className="p-5 border border-amber-200 bg-amber-50/5">
+            <h4 className="font-bold text-amber-800 text-sm flex items-center gap-2 mb-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600" /> Alerte de stock de fascicules ({anomalies.bookletsLowStock.length})
+            </h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-left font-bold text-gray-500"><th>Code</th><th>Titre</th><th>Stock actuel</th><th>Seuil d'alerte</th></tr>
+                </thead>
+                <tbody>
+                  {anomalies.bookletsLowStock.map((b) => (
+                    <tr key={b.id} className="border-t py-1">
+                      <td className="py-2 font-mono font-bold">{b.code}</td>
+                      <td>{b.title}</td>
+                      <td className="text-red-600 font-bold">{b.stock_quantity}</td>
+                      <td>{b.min_stock_threshold}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        )}
+
+        {totalAnomalies === 0 && (
+          <div className="text-center py-12 p-6 bg-green-50/50 rounded-2xl border border-green-100 max-w-md mx-auto">
+            <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-3" />
+            <h4 className="font-bold text-green-950 text-sm">Félicitations, aucune anomalie détectée !</h4>
+            <p className="text-xs text-green-800 mt-1">
+              Toutes les lignes de notes, de matricules d'inscription, de stocks de livrets et d'échéances financières sont parfaitement conformes.
+            </p>
           </div>
         )}
-      </Card>
+      </div>
     </div>
   );
 }

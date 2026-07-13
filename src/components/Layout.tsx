@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, UserPlus, FileText, GraduationCap, BookOpen,
   ClipboardList, Award, CreditCard, Receipt, BookMarked, Package,
   CreditCard as IdCardIcon, Settings, Shield, FileBarChart, Archive, UsersRound,
-  Menu, X, LogOut, ChevronDown, Calendar, Layers, School,
+  Menu, X, LogOut, ChevronDown, Calendar, Layers, School, AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { useRouter } from '../lib/router';
@@ -73,7 +73,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: 'Rôles & permissions', icon: Shield, path: '/roles', roles: ['super_admin'] },
       { label: 'Paramètres', icon: Settings, path: '/settings', roles: ['super_admin'] },
       { label: 'Journal d\'audit', icon: FileBarChart, path: '/audit', roles: ['super_admin'] },
-      { label: 'Archives', icon: Archive, path: '/archives' },
+      { label: 'Contrôle anomalies', icon: AlertTriangle, path: '/archives' },
     ],
   },
 ];
@@ -257,7 +257,7 @@ function getPageTitle(path: string): string {
     '/roles': 'Rôles & permissions',
     '/settings': 'Paramètres',
     '/audit': 'Journal d\'audit',
-    '/archives': 'Archives',
+    '/archives': 'Contrôle anomalies',
   };
   if (titles[path]) return titles[path];
   if (path.startsWith('/students/')) return 'Fiche étudiant';
