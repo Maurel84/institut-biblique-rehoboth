@@ -1,5 +1,54 @@
 -- ============================================================================
--- 1. ACADEMIC YEARS
+-- 1. NETTOYAGE COMPLET DES DONNÉES DE DÉMONSTRATION
+-- ============================================================================
+
+-- Désactiver temporairement les déclencheurs et clés étrangères pour le nettoyage
+SET session_replication_role = 'replica';
+
+TRUNCATE TABLE generated_documents CASCADE;
+TRUNCATE TABLE booklet_stock_movements CASCADE;
+TRUNCATE TABLE booklet_deliveries CASCADE;
+TRUNCATE TABLE booklet_order_items CASCADE;
+TRUNCATE TABLE booklet_orders CASCADE;
+TRUNCATE TABLE booklet_pack_items CASCADE;
+TRUNCATE TABLE booklet_packs CASCADE;
+TRUNCATE TABLE training_booklets CASCADE;
+TRUNCATE TABLE card_reprints CASCADE;
+TRUNCATE TABLE student_cards CASCADE;
+TRUNCATE TABLE discounts CASCADE;
+TRUNCATE TABLE payment_receipts CASCADE;
+TRUNCATE TABLE payment_allocations CASCADE;
+TRUNCATE TABLE payments CASCADE;
+TRUNCATE TABLE payment_schedules CASCADE;
+TRUNCATE TABLE student_fee_items CASCADE;
+TRUNCATE TABLE student_fee_accounts CASCADE;
+TRUNCATE TABLE fee_categories CASCADE;
+TRUNCATE TABLE tuition_fee_structures CASCADE;
+TRUNCATE TABLE retakes CASCADE;
+TRUNCATE TABLE academic_decisions CASCADE;
+TRUNCATE TABLE rankings CASCADE;
+TRUNCATE TABLE annual_results CASCADE;
+TRUNCATE TABLE grades CASCADE;
+TRUNCATE TABLE grade_history CASCADE;
+TRUNCATE TABLE teacher_assignments CASCADE;
+TRUNCATE TABLE subjects CASCADE;
+TRUNCATE TABLE modules CASCADE;
+TRUNCATE TABLE teachers CASCADE;
+TRUNCATE TABLE enrollments CASCADE;
+TRUNCATE TABLE student_documents CASCADE;
+TRUNCATE TABLE matricule_sequences CASCADE;
+TRUNCATE TABLE students CASCADE;
+TRUNCATE TABLE promotions CASCADE;
+TRUNCATE TABLE levels CASCADE;
+TRUNCATE TABLE programs CASCADE;
+TRUNCATE TABLE academic_years CASCADE;
+
+-- Réactiver les déclencheurs
+SET session_replication_role = 'origin';
+
+
+-- ============================================================================
+-- 2. ACADEMIC YEARS
 -- ============================================================================
 INSERT INTO academic_years (name, start_date, end_date, status, is_current) VALUES
   ('2024-2025', '2024-10-01', '2025-07-31', 'closed', false),
@@ -8,7 +57,7 @@ ON CONFLICT (name) DO NOTHING;
 
 
 -- ============================================================================
--- 2. PROGRAMS & LEVELS
+-- 3. PROGRAMS & LEVELS
 -- ============================================================================
 INSERT INTO programs (name, code, description) VALUES
   ('Théologie Biblique', 'THEO', 'Formation théologique et pastorale biblique')
@@ -21,7 +70,7 @@ ON CONFLICT (code) DO NOTHING;
 
 
 -- ============================================================================
--- 3. PROMOTIONS
+-- 4. PROMOTIONS
 -- ============================================================================
 INSERT INTO promotions (name, code, academic_year_id, level_id, program_id) VALUES
   ('Promotion B1 2024-2025', 'B1-2024', (SELECT id FROM academic_years WHERE name = '2024-2025'), (SELECT id FROM levels WHERE code = 'B1'), (SELECT id FROM programs WHERE code = 'THEO')),
@@ -32,7 +81,7 @@ ON CONFLICT (code) DO NOTHING;
 
 
 -- ============================================================================
--- 4. TEACHERS
+-- 5. TEACHERS
 -- ============================================================================
 INSERT INTO teachers (last_name, first_name, title, phone, email, specialty, status) VALUES
   ('ASSAMOI', 'Honoré', 'Professeur', '+225 07070707', 'hassamoi@ibr-bonoua.org', 'Théologie', 'actif'),
@@ -45,7 +94,7 @@ INSERT INTO teachers (last_name, first_name, title, phone, email, specialty, sta
 
 
 -- ============================================================================
--- 5. MODULES & SUBJECTS (2024-2025)
+-- 6. MODULES & SUBJECTS (2024-2025)
 -- ============================================================================
 DO $$
 DECLARE
@@ -134,7 +183,7 @@ END $$;
 
 
 -- ============================================================================
--- 6. STUDENTS
+-- 7. STUDENTS
 -- ============================================================================
 -- B1 Students
 INSERT INTO students (id, matricule, last_name, first_name, sex, nationality, country, academic_status, first_enrollment_date, current_level_id)
@@ -161,7 +210,7 @@ VALUES
 
 
 -- ============================================================================
--- 7. MATRICULE SEQUENCES
+-- 8. MATRICULE SEQUENCES
 -- ============================================================================
 INSERT INTO matricule_sequences (sequence_number, level_code, used_by_student, used_at) VALUES
   (137, 'B1', 'c3100000-0001-4000-8000-000000000001', now()),
@@ -182,7 +231,7 @@ INSERT INTO matricule_sequences (sequence_number, level_code, used_by_student, u
 
 
 -- ============================================================================
--- 8. ENROLLMENTS (2024-2025)
+-- 9. ENROLLMENTS (2024-2025)
 -- ============================================================================
 INSERT INTO enrollments (id, student_id, academic_year_id, program_id, level_id, enrollment_type, status, enrollment_date, validated_at)
 VALUES
@@ -207,7 +256,7 @@ VALUES
 
 
 -- ============================================================================
--- 9. GRADES INSERTION (2024-2025)
+-- 10. GRADES INSERTION (2024-2025)
 -- ============================================================================
 -- Helper procedure to insert grade
 CREATE OR REPLACE PROCEDURE public.insert_std_grade(
@@ -320,6 +369,7 @@ CALL insert_std_grade('0143/IBR/B1', 'B1-S01', 67);
 CALL insert_std_grade('0143/IBR/B1', 'B1-S02', 57);
 CALL insert_std_grade('0143/IBR/B1', 'B1-S03', 43);
 CALL insert_std_grade('0143/IBR/B1', 'B1-S04', 65);
+CALL insert_std_grade('0143/IBR/B1', 'B1-S05', 66);
 CALL insert_std_grade('0143/IBR/B1', 'B1-S06', 62.5);
 CALL insert_std_grade('0143/IBR/B1', 'B1-S07', 43);
 CALL insert_std_grade('0143/IBR/B1', 'B1-S08', 67);
@@ -480,7 +530,7 @@ DROP PROCEDURE public.insert_std_grade(text, text, numeric);
 
 
 -- ============================================================================
--- 10. ANNUAL RESULTS & RANKINGS (2024-2025)
+-- 11. ANNUAL RESULTS & RANKINGS (2024-2025)
 -- ============================================================================
 -- B1 Results & Rankings
 INSERT INTO annual_results (student_id, academic_year_id, level_id, average, weighted_average, rank, decision)
@@ -528,7 +578,7 @@ VALUES
 
 
 -- ============================================================================
--- 11. FEE STRUCTURES & FINANCIAL ACCOUNTS (2024-2025)
+-- 12. FEE STRUCTURES & FINANCIAL ACCOUNTS (2024-2025)
 -- ============================================================================
 -- Fee categories
 INSERT INTO fee_categories (name, code, description, is_mandatory, order_index) VALUES
@@ -562,8 +612,7 @@ BEGIN
     (ay_id, p_id, b2_id, fc_sco, 170000, 3),
     (ay_id, p_id, b2_id, fc_car, 2000, 1),
     (ay_id, p_id, b2_id, fc_exa, 10000, 1),
-    (ay_id, p_id, b2_id, fc_dip, 30000, 1)
-  ON CONFLICT DO NOTHING;
+    (ay_id, p_id, b2_id, fc_dip, 30000, 1);
 END $$;
 
 -- Initialize Accounts
@@ -600,7 +649,7 @@ END $$;
 
 
 -- ============================================================================
--- 12. SETTINGS INITIALIZATION
+-- 13. SETTINGS INITIALIZATION
 -- ============================================================================
 INSERT INTO settings (key, value, category, description) VALUES
   ('institute_info', '{"name":"Institut Biblique Rehoboth","short_name":"IBR","address":"Bonoua, Côte d''Ivoire","phone":"+225 07070707","email":"contact@ibr-bonoua.org","director":"Directeur Général","logo_url":""}', 'general', 'Informations générales de l''institut'),
