@@ -547,7 +547,7 @@ export function DocumentsPage() {
       const isEx = g?.is_exempted;
       const isAb = g?.is_absent;
       const score = g?.score;
-      const displayScore = isEx ? 'DISP' : isAb ? 'ABS' : score !== null && score !== undefined ? `${score}/20` : '-';
+      const displayScore = isEx ? 'DISP' : isAb ? 'ABS' : score !== null && score !== undefined ? `${score}/100` : '-';
       const coef = isEx ? '-' : sub.coefficient;
       const points = isEx || score === null || score === undefined ? '-' : (isAb ? 0 : score * sub.coefficient);
 
@@ -631,7 +631,7 @@ export function DocumentsPage() {
                 <th>Matière</th>
                 <th>Module</th>
                 <th style="text-align: center;">Coef.</th>
-                <th style="text-align: center;">Note /20</th>
+                <th style="text-align: center;">Note /100</th>
                 <th style="text-align: center;">Points</th>
               </tr>
             </thead>
@@ -648,7 +648,7 @@ export function DocumentsPage() {
           <div class="totals">
             <div class="totals-row"><span>Total des coefficients :</span><span>${totalCoefs}</span></div>
             <div class="totals-row"><span>Total des points obtenus :</span><span>${totalPoints}</span></div>
-            <div class="totals-row"><span>Moyenne Générale :</span><span>${average.toFixed(2)} / 20</span></div>
+            <div class="totals-row"><span>Moyenne Générale :</span><span>${average.toFixed(2)} / 100</span></div>
           </div>
 
           <div style="clear: both;"></div>

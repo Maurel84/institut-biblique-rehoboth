@@ -130,8 +130,8 @@ export function GradesPage() {
     const score = scoreStr === '' ? null : parseFloat(scoreStr);
 
     if (score !== null) {
-      if (score < 0 || score > 20) {
-        show('La note doit être entre 0 et 20', 'error');
+      if (score < 0 || score > 100) {
+        show('La note doit être entre 0 et 100', 'error');
         return;
       }
     }
@@ -383,8 +383,8 @@ export function GradesPage() {
           ? 'disp'
           : parseFloat(noteStr.replace(',', '.'));
 
-      if (parsedNote !== 'abs' && parsedNote !== 'disp' && (isNaN(parsedNote as number) || (parsedNote as number) < 0 || (parsedNote as number) > 20)) {
-        errors.push(`Ligne ${idx + 1}: Note '${noteStr}' invalide. Doit être entre 0 et 20, 'ABS', ou 'DISP'`);
+      if (parsedNote !== 'abs' && parsedNote !== 'disp' && (isNaN(parsedNote as number) || (parsedNote as number) < 0 || (parsedNote as number) > 100)) {
+        errors.push(`Ligne ${idx + 1}: Note '${noteStr}' invalide. Doit être entre 0 et 100, 'ABS', ou 'DISP'`);
         return;
       }
 
@@ -683,7 +683,7 @@ export function GradesPage() {
                   <div>
                     <h3 className="font-bold text-gray-900 text-base">{subject?.name}</h3>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      Coefficient: {subject?.coefficient} | Seuil de validation: {subject?.passing_threshold}/20 | Enseignant: {subject?.teacher ? fullName(subject.teacher.last_name, subject.teacher.first_name) : '-'}
+                      Coefficient: {subject?.coefficient} | Seuil de validation: {subject?.passing_threshold}/100 | Enseignant: {subject?.teacher ? fullName(subject.teacher.last_name, subject.teacher.first_name) : '-'}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -707,7 +707,7 @@ export function GradesPage() {
                         <th className="text-left px-5 py-3.5 font-semibold text-gray-600 w-12">N°</th>
                         <th className="text-left px-5 py-3.5 font-semibold text-gray-600">Matricule</th>
                         <th className="text-left px-5 py-3.5 font-semibold text-gray-600">Nom et prénoms</th>
-                        <th className="text-center px-5 py-3.5 font-semibold text-gray-600 w-36">Note /20</th>
+                        <th className="text-center px-5 py-3.5 font-semibold text-gray-600 w-36">Note /100</th>
                         <th className="text-center px-5 py-3.5 font-semibold text-gray-600 w-28">Statut</th>
                         <th className="text-center px-5 py-3.5 font-semibold text-gray-600 w-44">Actions</th>
                       </tr>
@@ -716,7 +716,7 @@ export function GradesPage() {
                       {students.map((s, i) => {
                         const g = grades[s.id];
                         const isLocked = g?.status === 'locked';
-                        const scoreIsFailing = g?.score !== null && g?.score < (subject?.passing_threshold || 10);
+                        const scoreIsFailing = g?.score !== null && g?.score < (subject?.passing_threshold || 50);
                         return (
                           <tr key={s.id} className="table-row-hover">
                             <td className="px-5 py-3.5 text-gray-500">{i + 1}</td>
@@ -727,7 +727,7 @@ export function GradesPage() {
                                 ref={(el) => { if (el) inputRefs.current[s.id] = el; }}
                                 type="number"
                                 min="0"
-                                max="20"
+                                max="100"
                                 step="0.25"
                                 value={g?.score ?? ''}
                                 onChange={(e) => updateScore(s.id, e.target.value)}
@@ -857,7 +857,7 @@ export function GradesPage() {
                           )}
                         </td>
                         <td className="px-4 py-2 text-center font-bold">
-                          {r.isAbsent ? <Badge color="red">Absent</Badge> : r.isExempted ? <Badge color="blue">Dispensé</Badge> : `${r.score}/20`}
+                          {r.isAbsent ? <Badge color="red">Absent</Badge> : r.isExempted ? <Badge color="blue">Dispensé</Badge> : `${r.score}/100`}
                         </td>
                         <td className="px-4 py-2 text-center text-xs">
                           {r.student ? <Badge color="green">Prêt</Badge> : <Badge color="gray">Exclu</Badge>}
@@ -931,7 +931,7 @@ export function GradesPage() {
                           </td>
                           <td className="px-4 py-3.5 font-semibold text-gray-700 font-mono">{r.student.matricule ?? '-'}</td>
                           <td className="px-4 py-3.5 font-semibold text-gray-900">{fullName(r.student.last_name, r.student.first_name)}</td>
-                          <td className="px-4 py-3.5 text-center font-bold text-ibr-900">{r.finalAverage}/20</td>
+                          <td className="px-4 py-3.5 text-center font-bold text-ibr-900">{r.finalAverage}/100</td>
                           <td className="px-4 py-3.5 text-center text-xs text-green-700 font-bold">+{r.bonusPoints} pt(s)</td>
                           <td className="px-4 py-3.5 text-center text-gray-600 font-medium">{r.subjectsPassed} / {r.subjectsCounted}</td>
                           <td className="px-4 py-3.5">
@@ -982,8 +982,8 @@ export function GradesPage() {
           <div className="text-sm space-y-1 bg-gray-50 p-3 rounded-xl">
             <p className="text-gray-500">Matière : <span className="font-semibold text-gray-900">{subject?.name}</span></p>
             <p className="text-gray-500">Étudiant : <span className="font-semibold text-gray-900">{justifyData ? fullName(students.find(s=>s.id===justifyData.studentId)?.last_name, students.find(s=>s.id===justifyData.studentId)?.first_name) : ''}</span></p>
-            <p className="text-gray-500">Ancienne note : <span className="font-bold text-gray-700">{justifyData?.oldScore !== null ? `${justifyData?.oldScore}/20` : '-'}</span></p>
-            <p className="text-gray-500">Nouvelle valeur : <span className="font-bold text-ibr-800">{justifyData?.isAbsent ? 'ABSENT' : justifyData?.isExempted ? 'DISPENSÉ' : justifyData?.newScore !== null ? `${justifyData?.newScore}/20` : '-'}</span></p>
+            <p className="text-gray-500">Ancienne note : <span className="font-bold text-gray-700">{justifyData?.oldScore !== null ? `${justifyData?.oldScore}/100` : '-'}</span></p>
+            <p className="text-gray-500">Nouvelle valeur : <span className="font-bold text-ibr-800">{justifyData?.isAbsent ? 'ABSENT' : justifyData?.isExempted ? 'DISPENSÉ' : justifyData?.newScore !== null ? `${justifyData?.newScore}/100` : '-'}</span></p>
           </div>
 
           <div>
@@ -1013,7 +1013,7 @@ export function GradesPage() {
         <div className="space-y-4">
           <div className="text-sm bg-gray-50 p-4 rounded-xl space-y-1">
             <p className="text-gray-600">Étudiant : <span className="font-bold text-gray-900">{selectedDelibRow ? fullName(selectedDelibRow.student.last_name, selectedDelibRow.student.first_name) : ''}</span></p>
-            <p className="text-gray-600">Moyenne finale : <span className="font-bold text-ibr-700">{selectedDelibRow?.finalAverage}/20</span></p>
+            <p className="text-gray-600">Moyenne finale : <span className="font-bold text-ibr-700">{selectedDelibRow?.finalAverage}/100</span></p>
             <p className="text-gray-600">Échecs (sous la moyenne de validation) : <span className="font-semibold text-red-600">{selectedDelibRow?.subjectsFailed} matière(s)</span></p>
           </div>
 
@@ -1197,7 +1197,7 @@ export function RankingsPage() {
                     </td>
                     <td className="px-3 py-2 font-medium text-ibr-700 font-mono">{r.student.matricule ?? '-'}</td>
                     <td className="px-3 py-2 font-semibold text-gray-900">{fullName(r.student.last_name, r.student.first_name)}</td>
-                    <td className="px-3 py-2 text-center font-bold">{formatNumber(r.weightedAverage)}/20</td>
+                    <td className="px-3 py-2 text-center font-bold">{formatNumber(r.weightedAverage)}/100</td>
                     <td className="px-3 py-2 text-center">{r.subjectsPassed}/{r.subjectsCounted}</td>
                     <td className="px-3 py-2 text-center">{r.passRate}%</td>
                     <td className="px-3 py-2 text-center">

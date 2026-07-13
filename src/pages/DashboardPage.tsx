@@ -149,8 +149,8 @@ export function DashboardPage() {
                       <p className="text-xs text-gray-500">{s.matricule}</p>
                     </div>
                   </div>
-                  <Badge color={s.average >= 14 ? 'green' : s.average >= 10 ? 'gold' : 'red'}>
-                    {s.average.toFixed(2)}/20
+                  <Badge color={s.average >= 70 ? 'green' : s.average >= 50 ? 'gold' : 'red'}>
+                    {s.average.toFixed(2)}/100
                   </Badge>
                 </div>
               ))}

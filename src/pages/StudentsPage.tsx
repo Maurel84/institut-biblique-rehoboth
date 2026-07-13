@@ -854,7 +854,7 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
                     <th className="text-left px-3 py-2 font-medium text-gray-600">Année</th>
                     <th className="text-left px-3 py-2 font-medium text-gray-600">Matière</th>
                     <th className="text-left px-3 py-2 font-medium text-gray-600">Module</th>
-                    <th className="text-center px-3 py-2 font-medium text-gray-600">Note /20</th>
+                    <th className="text-center px-3 py-2 font-medium text-gray-600">Note /100</th>
                     <th className="text-left px-3 py-2 font-medium text-gray-600">Statut</th>
                   </tr>
                 </thead>
@@ -865,7 +865,7 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
                       <td className="px-3 py-2 font-medium">{g.subject?.name}</td>
                       <td className="px-3 py-2">{g.subject?.module?.name ?? '-'}</td>
                       <td className="px-3 py-2 text-center font-bold">
-                        {g.is_absent ? <span className="text-red-600">Absent</span> : g.is_exempted ? <span className="text-blue-600">Dispensé</span> : g.is_not_available ? 'N/A' : g.score !== null ? `${g.score}/20` : '-'}
+                        {g.is_absent ? <span className="text-red-600">Absent</span> : g.is_exempted ? <span className="text-blue-600">Dispensé</span> : g.is_not_available ? 'N/A' : g.score !== null ? `${g.score}/100` : '-'}
                       </td>
                       <td className="px-3 py-2">
                         <Badge color={g.status === 'validated' || g.status === 'locked' ? 'green' : g.status === 'submitted' ? 'gold' : 'gray'}>{g.status}</Badge>
