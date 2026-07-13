@@ -428,7 +428,7 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
     nationality: '', marital_status: '', phone: '', whatsapp_phone: '', email: '',
     residence_address: '', city: '', country: '', church: '', denomination: '',
     pastor_name: '', ministry_role: '', emergency_contact_name: '', emergency_contact_phone: '',
-    observations: '', photo_url: ''
+    observations: '', photo_url: '', academic_status: ''
   });
 
   const loadAll = useCallback(async () => {
@@ -629,7 +629,8 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
       emergency_contact_name: student.emergency_contact_name || '',
       emergency_contact_phone: student.emergency_contact_phone || '',
       observations: student.observations || '',
-      photo_url: student.photo_url || ''
+      photo_url: student.photo_url || '',
+      academic_status: student.academic_status || ''
     });
     setShowEditModal(true);
   }
@@ -661,7 +662,8 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
       emergency_contact_name: editForm.emergency_contact_name || null,
       emergency_contact_phone: editForm.emergency_contact_phone || null,
       observations: editForm.observations || null,
-      photo_url: editForm.photo_url || null
+      photo_url: editForm.photo_url || null,
+      academic_status: editForm.academic_status || null
     }).eq('id', studentId);
 
     if (error) {
@@ -1078,6 +1080,18 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
               </select>
             </div>
             <div>
+              <label className="label-field">Statut Académique *</label>
+              <select className="input-field" value={editForm.academic_status} onChange={(e) => setEditForm({ ...editForm, academic_status: e.target.value })} required>
+                <option value="preinscrit">Préinscrit</option>
+                <option value="inscrit">Inscrit</option>
+                <option value="actif">Actif (suit les cours)</option>
+                <option value="suspendu">Suspendu (arrêt temporaire)</option>
+                <option value="abandonne">Abandonné (a quitté l'école)</option>
+                <option value="exclu">Exclu</option>
+                <option value="diplome">Diplômé</option>
+              </select>
+            </div>
+            <div className="sm:col-span-2">
               <label className="label-field">URL Photo de profil</label>
               <input className="input-field" value={editForm.photo_url} onChange={(e) => setEditForm({ ...editForm, photo_url: e.target.value })} placeholder="https://..." />
             </div>
