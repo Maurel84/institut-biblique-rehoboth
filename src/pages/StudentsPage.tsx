@@ -420,6 +420,17 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
   });
   const [allYears, setAllYears] = useState<any[]>([]);
 
+  // Edit profile state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [updatingProfile, setUpdatingProfile] = useState(false);
+  const [editForm, setEditForm] = useState<any>({
+    last_name: '', first_name: '', sex: '', birth_date: '', birth_place: '',
+    nationality: '', marital_status: '', phone: '', whatsapp_phone: '', email: '',
+    residence_address: '', city: '', country: '', church: '', denomination: '',
+    pastor_name: '', ministry_role: '', emergency_contact_name: '', emergency_contact_phone: '',
+    observations: '', photo_url: ''
+  });
+
   const loadAll = useCallback(async () => {
     setLoading(true);
     const { data: s } = await supabase
@@ -571,6 +582,74 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
     }
   }
 
+  function handleOpenEditModal() {
+    if (!student) return;
+    setEditForm({
+      last_name: student.last_name || '',
+      first_name: student.first_name || '',
+      sex: student.sex || '',
+      birth_date: student.birth_date || '',
+      birth_place: student.birth_place || '',
+      nationality: student.nationality || '',
+      marital_status: student.marital_status || '',
+      phone: student.phone || '',
+      whatsapp_phone: student.whatsapp_phone || '',
+      email: student.email || '',
+      residence_address: student.residence_address || '',
+      city: student.city || '',
+      country: student.country || '',
+      church: student.church || '',
+      denomination: student.denomination || '',
+      pastor_name: student.pastor_name || '',
+      ministry_role: student.ministry_role || '',
+      emergency_contact_name: student.emergency_contact_name || '',
+      emergency_contact_phone: student.emergency_contact_phone || '',
+      observations: student.observations || '',
+      photo_url: student.photo_url || ''
+    });
+    setShowEditModal(true);
+  }
+
+  async function handleUpdateProfile() {
+    if (!editForm.last_name || !editForm.first_name) {
+      show('Le nom et le prénom sont requis', 'error');
+      return;
+    }
+    setUpdatingProfile(true);
+    const { error } = await supabase.from('students').update({
+      last_name: editForm.last_name,
+      first_name: editForm.first_name,
+      sex: editForm.sex || null,
+      birth_date: editForm.birth_date || null,
+      birth_place: editForm.birth_place || null,
+      nationality: editForm.nationality || null,
+      marital_status: editForm.marital_status || null,
+      phone: editForm.phone || null,
+      whatsapp_phone: editForm.whatsapp_phone || null,
+      email: editForm.email || null,
+      residence_address: editForm.residence_address || null,
+      city: editForm.city || null,
+      country: editForm.country || null,
+      church: editForm.church || null,
+      denomination: editForm.denomination || null,
+      pastor_name: editForm.pastor_name || null,
+      ministry_role: editForm.ministry_role || null,
+      emergency_contact_name: editForm.emergency_contact_name || null,
+      emergency_contact_phone: editForm.emergency_contact_phone || null,
+      observations: editForm.observations || null,
+      photo_url: editForm.photo_url || null
+    }).eq('id', studentId);
+
+    if (error) {
+      show(error.message, 'error');
+    } else {
+      show('Profil étudiant mis à jour', 'success');
+      setShowEditModal(false);
+      loadAll();
+    }
+    setUpdatingProfile(false);
+  }
+
   // Compile timeline events
   const timelineEvents: { date: string; title: string; desc: string; icon: any; color: string }[] = [];
   
@@ -617,12 +696,15 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
         subtitle={`Dossier permanent : ${student.student_number ?? '-'} | Matricule actif : ${student.matricule ?? '-'}`}
         actions={
           <div className="flex gap-2">
+            <button className="btn-secondary flex items-center gap-1 py-2 px-3 text-xs sm:text-sm font-semibold" onClick={handleOpenEditModal}>
+              <Edit className="w-4 h-4" /> Modifier profil
+            </button>
             {student.academic_status === 'actif' && (
-              <button className="btn-primary flex items-center gap-1.5" onClick={() => setShowPromotionModal(true)}>
+              <button className="btn-primary flex items-center gap-1.5 py-2 px-3 text-xs sm:text-sm font-semibold" onClick={() => setShowPromotionModal(true)}>
                 <ArrowUpRight className="w-4 h-4" /> Promouvoir / Réinscrire
               </button>
             )}
-            <button className="btn-secondary" onClick={() => navigate('/students')}>Retour à la liste</button>
+            <button className="btn-secondary py-2 px-3 text-xs sm:text-sm font-semibold" onClick={() => navigate('/students')}>Retour à la liste</button>
           </div>
         }
       />
@@ -927,6 +1009,133 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
             </button>
           </div>
         </div>
+      </Modal>
+
+      {/* EDIT PROFILE MODAL */}
+      <Modal open={showEditModal} onClose={() => setShowEditModal(false)} title="Modifier les informations de l'étudiant" size="lg">
+        <form onSubmit={(e) => { e.preventDefault(); handleUpdateProfile(); }} className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="label-field">Nom *</label>
+              <input className="input-field" value={editForm.last_name} onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })} required />
+            </div>
+            <div>
+              <label className="label-field">Prénoms *</label>
+              <input className="input-field" value={editForm.first_name} onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })} required />
+            </div>
+            <div>
+              <label className="label-field">Sexe</label>
+              <select className="input-field" value={editForm.sex} onChange={(e) => setEditForm({ ...editForm, sex: e.target.value })}>
+                <option value="">--</option>
+                <option value="M">Masculin</option>
+                <option value="F">Féminin</option>
+              </select>
+            </div>
+            <div>
+              <label className="label-field">Date de naissance</label>
+              <input type="date" className="input-field" value={editForm.birth_date} onChange={(e) => setEditForm({ ...editForm, birth_date: e.target.value })} />
+            </div>
+            <div>
+              <label className="label-field">Lieu de naissance</label>
+              <input className="input-field" value={editForm.birth_place} onChange={(e) => setEditForm({ ...editForm, birth_place: e.target.value })} />
+            </div>
+            <div>
+              <label className="label-field">Nationalité</label>
+              <input className="input-field" value={editForm.nationality} onChange={(e) => setEditForm({ ...editForm, nationality: e.target.value })} />
+            </div>
+            <div>
+              <label className="label-field">Situation matrimoniale</label>
+              <select className="input-field" value={editForm.marital_status} onChange={(e) => setEditForm({ ...editForm, marital_status: e.target.value })}>
+                <option value="">--</option>
+                <option value="celibataire">Célibataire</option>
+                <option value="marie">Marié(e)</option>
+                <option value="veuf">Veuf(ve)</option>
+                <option value="divorce">Divorcé(e)</option>
+              </select>
+            </div>
+            <div>
+              <label className="label-field">URL Photo de profil</label>
+              <input className="input-field" value={editForm.photo_url} onChange={(e) => setEditForm({ ...editForm, photo_url: e.target.value })} placeholder="https://..." />
+            </div>
+          </div>
+
+          <div className="border-t pt-3 mt-3">
+            <h4 className="font-semibold text-gray-900 text-sm mb-3">Coordonnées de contact</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="label-field">Téléphone</label>
+                <input className="input-field" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
+              </div>
+              <div>
+                <label className="label-field">WhatsApp</label>
+                <input className="input-field" value={editForm.whatsapp_phone} onChange={(e) => setEditForm({ ...editForm, whatsapp_phone: e.target.value })} />
+              </div>
+              <div>
+                <label className="label-field">Email</label>
+                <input type="email" className="input-field" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+              </div>
+              <div>
+                <label className="label-field">Adresse de résidence</label>
+                <input className="input-field" value={editForm.residence_address} onChange={(e) => setEditForm({ ...editForm, residence_address: e.target.value })} />
+              </div>
+              <div>
+                <label className="label-field">Ville</label>
+                <input className="input-field" value={editForm.city} onChange={(e) => setEditForm({ ...editForm, city: e.target.value })} />
+              </div>
+              <div>
+                <label className="label-field">Pays</label>
+                <input className="input-field" value={editForm.country} onChange={(e) => setEditForm({ ...editForm, country: e.target.value })} />
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t pt-3 mt-3">
+            <h4 className="font-semibold text-gray-900 text-sm mb-3">Église et ministère</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="label-field">Église d'appartenance</label>
+                <input className="input-field" value={editForm.church} onChange={(e) => setEditForm({ ...editForm, church: e.target.value })} />
+              </div>
+              <div>
+                <label className="label-field">Dénomination</label>
+                <input className="input-field" value={editForm.denomination} onChange={(e) => setEditForm({ ...editForm, denomination: e.target.value })} />
+              </div>
+              <div>
+                <label className="label-field">Nom du pasteur</label>
+                <input className="input-field" value={editForm.pastor_name} onChange={(e) => setEditForm({ ...editForm, pastor_name: e.target.value })} />
+              </div>
+              <div>
+                <label className="label-field">Ministère / fonction</label>
+                <input className="input-field" value={editForm.ministry_role} onChange={(e) => setEditForm({ ...editForm, ministry_role: e.target.value })} />
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t pt-3 mt-3">
+            <h4 className="font-semibold text-gray-900 text-sm mb-3">Urgence & Observations</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="label-field">Contact d'urgence (Nom)</label>
+                <input className="input-field" value={editForm.emergency_contact_name} onChange={(e) => setEditForm({ ...editForm, emergency_contact_name: e.target.value })} />
+              </div>
+              <div>
+                <label className="label-field">Téléphone d'urgence</label>
+                <input className="input-field" value={editForm.emergency_contact_phone} onChange={(e) => setEditForm({ ...editForm, emergency_contact_phone: e.target.value })} />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="label-field">Observations</label>
+                <textarea className="input-field min-h-[70px]" value={editForm.observations} onChange={(e) => setEditForm({ ...editForm, observations: e.target.value })} />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-3 border-t mt-4">
+            <button type="button" className="btn-secondary" onClick={() => setShowEditModal(false)} disabled={updatingProfile}>Annuler</button>
+            <button type="submit" className="btn-primary" disabled={updatingProfile}>
+              {updatingProfile ? 'Modification...' : 'Enregistrer les modifications'}
+            </button>
+          </div>
+        </form>
       </Modal>
     </div>
   );

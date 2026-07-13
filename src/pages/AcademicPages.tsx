@@ -1097,10 +1097,12 @@ export function EnrollmentsPage() {
     try {
       let studentId = selectedStudent?.id;
 
-      // 1. Create student if new
+      // 1. Create student if new or update existing
+      const levelObj = levels.find((l) => l.id === academicForm.level_id);
+      let enrollmentMatricule = '';
+
       if (isNewStudent) {
         // Generate a student sequence number
-        const levelObj = levels.find((l) => l.id === academicForm.level_id);
         const { data: seqData } = await supabase
           .from('matricule_sequences')
           .select('sequence_number')
@@ -1110,7 +1112,7 @@ export function EnrollmentsPage() {
 
         const nextNum = seqData && seqData.length > 0 ? (seqData[0] as any).sequence_number + 1 : 1;
         const studentSeqStr = String(nextNum).padStart(4, '0');
-        const matriculeStr = `${studentSeqStr}/IBR/${levelObj?.code ?? 'B1'}`;
+        enrollmentMatricule = `${studentSeqStr}/IBR/${levelObj?.code ?? 'B1'}`;
 
         const { data: newStud, error: studErr } = await supabase.from('students').insert({
           last_name: newStudentForm.last_name,
@@ -1125,7 +1127,7 @@ export function EnrollmentsPage() {
           church: newStudentForm.church || null,
           first_enrollment_date: new Date().toISOString().split('T')[0],
           student_number: studentSeqStr,
-          matricule: matriculeStr,
+          matricule: enrollmentMatricule,
           current_level_id: academicForm.level_id,
           academic_status: 'actif',
         }).select().single();
@@ -1141,10 +1143,15 @@ export function EnrollmentsPage() {
           used_at: new Date().toISOString(),
         });
       } else if (studentId) {
-        // Update existing student current level & status
+        const studentObj = studentsList.find((s) => s.id === studentId);
+        const currentSeq = studentObj?.student_number || String(Math.floor(Math.random() * 1000)).padStart(4, '0');
+        enrollmentMatricule = `${currentSeq}/IBR/${levelObj?.code}`;
+
+        // Update existing student current level, status and active matricule
         await supabase.from('students').update({
           current_level_id: academicForm.level_id,
           academic_status: 'actif',
+          matricule: enrollmentMatricule,
         }).eq('id', studentId);
       }
 
@@ -1161,12 +1168,6 @@ export function EnrollmentsPage() {
       if (existingEnr) {
         throw new Error("Cet étudiant possède déjà un dossier d'inscription pour cette année.");
       }
-
-      // Generate current enrollment matricule
-      const levelObj = levels.find((l) => l.id === academicForm.level_id);
-      const studentObj = isNewStudent ? null : studentsList.find((s) => s.id === studentId);
-      const currentSeq = studentObj?.student_number || String(Math.floor(Math.random() * 1000)).padStart(4, '0');
-      const enrollmentMatricule = `${currentSeq}/IBR/${levelObj?.code}`;
 
       // Insert enrollment
       const { data: enrollment, error: enrErr } = await supabase.from('enrollments').insert({

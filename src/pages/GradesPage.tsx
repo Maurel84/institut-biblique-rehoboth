@@ -584,6 +584,25 @@ export function GradesPage() {
       });
     }
 
+    // Automatically update student's academic_status based on level and decision
+    let targetStatus = 'actif';
+    const currentLevelCode = student.current_level?.code || levels.find(l => l.id === student.current_level_id)?.code;
+    const isB2 = currentLevelCode === 'B2';
+
+    if (overrideDecision === 'admis' || overrideDecision === 'admis_reserve') {
+      targetStatus = isB2 ? 'diplome' : 'actif';
+    } else if (overrideDecision === 'ajourne' || overrideDecision === 'redoublant') {
+      targetStatus = 'suspendu';
+    } else if (overrideDecision === 'exclu') {
+      targetStatus = 'exclu';
+    } else if (overrideDecision === 'abandon') {
+      targetStatus = 'abandon';
+    }
+
+    await supabase.from('students').update({
+      academic_status: targetStatus
+    }).eq('id', student.id);
+
     show('Décision enregistrée avec succès', 'success');
     setShowDelibModal(false);
     setSaving(false);
