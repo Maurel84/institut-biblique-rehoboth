@@ -1143,9 +1143,17 @@ export function EnrollmentsPage() {
           used_at: new Date().toISOString(),
         });
       } else if (studentId) {
-        const studentObj = studentsList.find((s) => s.id === studentId);
-        const currentSeq = studentObj?.student_number || String(Math.floor(Math.random() * 1000)).padStart(4, '0');
-        enrollmentMatricule = `${currentSeq}/IBR/${levelObj?.code}`;
+        // Query next sequence number for the destination level
+        const { data: seqData } = await supabase
+          .from('matricule_sequences')
+          .select('sequence_number')
+          .eq('level_code', levelObj?.code ?? 'B1')
+          .order('sequence_number', { ascending: false })
+          .limit(1);
+
+        const nextNum = seqData && seqData.length > 0 ? (seqData[0] as any).sequence_number + 1 : 1;
+        const seqStr = String(nextNum).padStart(4, '0');
+        enrollmentMatricule = `${seqStr}/IBR/${levelObj?.code ?? 'B1'}`;
 
         // Update existing student current level, status and active matricule
         await supabase.from('students').update({
@@ -1153,6 +1161,14 @@ export function EnrollmentsPage() {
           academic_status: 'actif',
           matricule: enrollmentMatricule,
         }).eq('id', studentId);
+
+        // Record matricule sequence
+        await supabase.from('matricule_sequences').insert({
+          sequence_number: nextNum,
+          level_code: levelObj?.code ?? 'B1',
+          used_by_student: studentId,
+          used_at: new Date().toISOString(),
+        });
       }
 
       if (!studentId) throw new Error("Échec d'identification de l'étudiant");

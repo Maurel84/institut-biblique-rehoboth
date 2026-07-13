@@ -509,7 +509,17 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
       const levelObj = levels.find((l) => l.id === promotionForm.target_level_id);
       if (!levelObj) return;
 
-      const enrollmentMatricule = `${student.student_number}/IBR/${levelObj.code}`;
+      // Query the next sequence number for the destination level
+      const { data: seqData } = await supabase
+        .from('matricule_sequences')
+        .select('sequence_number')
+        .eq('level_code', levelObj.code)
+        .order('sequence_number', { ascending: false })
+        .limit(1);
+
+      const nextNum = seqData && seqData.length > 0 ? (seqData[0] as any).sequence_number + 1 : 1;
+      const seqStr = String(nextNum).padStart(4, '0');
+      const enrollmentMatricule = `${seqStr}/IBR/${levelObj.code}`;
 
       // 1. Create new enrollment
       const { data: enrollment, error: enrErr } = await supabase.from('enrollments').insert({
@@ -524,6 +534,14 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
       }).select().single();
 
       if (enrErr) throw new Error(enrErr.message);
+
+      // Record matricule sequence
+      await supabase.from('matricule_sequences').insert({
+        sequence_number: nextNum,
+        level_code: levelObj.code,
+        used_by_student: student.id,
+        used_at: new Date().toISOString(),
+      });
 
       // 2. Fetch target fee structures
       const { data: feeStructures } = await supabase
