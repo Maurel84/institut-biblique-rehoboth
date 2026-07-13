@@ -49,3 +49,30 @@ VALUES
   ('ASSIDUITE', 'Bonus d''assiduité', 'Bonus accordé pour la présence régulière aux cours', 1.0),
   ('PARTICIPATION', 'Bonus de participation', 'Bonus accordé pour l''engagement actif et le leadership', 0.5)
 ON CONFLICT (code) DO NOTHING;
+
+-- Define check_duplicate_matricules function
+CREATE OR REPLACE FUNCTION check_duplicate_matricules()
+RETURNS TABLE (
+  id uuid,
+  first_name text,
+  last_name text,
+  matricule text,
+  student_number text,
+  academic_status text
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT s.id, s.first_name, s.last_name, s.matricule, s.student_number, s.academic_status
+  FROM students s
+  WHERE s.deleted_at IS NULL
+    AND s.matricule IS NOT NULL
+    AND s.matricule IN (
+      SELECT m.matricule
+      FROM students m
+      WHERE m.deleted_at IS NULL
+      GROUP BY m.matricule
+      HAVING COUNT(*) > 1
+    )
+  ORDER BY s.matricule, s.last_name;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
