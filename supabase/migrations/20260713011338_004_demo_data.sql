@@ -147,21 +147,21 @@ END $$;
 -- B1 Students
 INSERT INTO students (id, matricule, last_name, first_name, sex, nationality, country, academic_status, first_enrollment_date, current_level_id)
 VALUES
-  ('c3100000-0001-4000-8000-000000000001', '0137/IBR/B1', 'AKOI DEDOU', 'ENERST JEAN MICHEL', 'M', 'Ivoirienne', 'Côte d''Ivoire', 'actif', '2024-10-01', (SELECT id FROM levels WHERE code = 'B1')),
-  ('c3100000-0002-4000-8000-000000000002', '0138/IBR/B1', 'ASSEMIEN', 'DANIEL', 'M', 'Ivoirienne', 'Côte d''Ivoire', 'actif', '2024-10-01', (SELECT id FROM levels WHERE code = 'B1')),
+  ('c3100000-0001-4000-8000-000000000001', '0137/IBR/B1', 'AKOI DEDOU', 'ENERST JEAN MICHEL', 'M', 'Ivoirienne', 'Côte d''Ivoire', 'suspendu', '2024-10-01', (SELECT id FROM levels WHERE code = 'B1')),
+  ('c3100000-0002-4000-8000-000000000002', '0138/IBR/B1', 'ASSEMIEN', 'DANIEL', 'M', 'Ivoirienne', 'Côte d''Ivoire', 'suspendu', '2024-10-01', (SELECT id FROM levels WHERE code = 'B1')),
   ('c3100000-0003-4000-8000-000000000003', '0139/IBR/B1', 'DIBY', 'AYANA ANGELE', 'F', 'Ivoirienne', 'Côte d''Ivoire', 'actif', '2024-10-01', (SELECT id FROM levels WHERE code = 'B1')),
   ('c3100000-0004-4000-8000-000000000004', '0140/IBR/B1', 'KADJO', 'AMBI PATRICIA', 'F', 'Ivoirienne', 'Côte d''Ivoire', 'actif', '2024-10-01', (SELECT id FROM levels WHERE code = 'B1')),
   ('c3100000-0005-4000-8000-000000000005', '0142/IBR/B1', 'M''BETTO LAURE', 'epse TOTTI', 'F', 'Ivoirienne', 'Côte d''Ivoire', 'actif', '2024-10-01', (SELECT id FROM levels WHERE code = 'B1')),
   ('c3100000-0006-4000-8000-000000000006', '0143/IBR/B1', 'KOUAME', 'HI PIERRE PATRICE', 'M', 'Ivoirienne', 'Côte d''Ivoire', 'actif', '2024-10-01', (SELECT id FROM levels WHERE code = 'B1')),
-  ('c3100000-0007-4000-8000-000000000007', '0144/IBR/B1', 'SEHI', 'ULRICH', 'M', 'Ivoirienne', 'Côte d''Ivoire', 'actif', '2024-10-01', (SELECT id FROM levels WHERE code = 'B1')),
+  ('c3100000-0007-4000-8000-000000000007', '0144/IBR/B1', 'SEHI', 'ULRICH', 'M', 'Ivoirienne', 'Côte d''Ivoire', 'suspendu', '2024-10-01', (SELECT id FROM levels WHERE code = 'B1')),
   ('c3100000-0008-4000-8000-000000000008', '0145/IBR/B1', 'TOKPA CHEBANIA', 'JEAN EMMANUEL', 'M', 'Ivoirienne', 'Côte d''Ivoire', 'actif', '2024-10-01', (SELECT id FROM levels WHERE code = 'B1')),
-  ('c3200000-0001-4000-8000-000000000001', '0127/IBR/B2', 'ABLAN', 'MARIE JOSEE', 'F', 'Ivoirienne', 'Côte d''Ivoire', 'actif', '2023-10-01', (SELECT id FROM levels WHERE code = 'B2')),
-  ('c3200000-0002-4000-8000-000000000002', '0128/IBR/B2', 'GNAZALE', 'epse AGOHI-N''GUESSAN NADEGE', 'F', 'Ivoirienne', 'Côte d''Ivoire', 'actif', '2023-10-01', (SELECT id FROM levels WHERE code = 'B2')),
-  ('c3200000-0003-4000-8000-000000000003', '0129/IBR/B2', 'EBRIN', 'JEAN HENOC', 'M', 'Ivoirienne', 'Côte d''Ivoire', 'actif', '2023-10-01', (SELECT id FROM levels WHERE code = 'B2')),
-  ('c3200000-0004-4000-8000-000000000004', '0130/IBR/B2', 'SERI OLGA EDWIGE', 'epse SERI', 'F', 'Ivoirienne', 'Côte d''Ivoire', 'actif', '2023-10-01', (SELECT id FROM levels WHERE code = 'B2')),
-  ('c3200000-0005-4000-8000-000000000005', '0131/IBR/B2', 'YAO YAH ROLANDE', 'epse DJAHI', 'F', 'Ivoirienne', 'Côte d''Ivoire', 'actif', '2023-10-01', (SELECT id FROM levels WHERE code = 'B2')),
-  ('c3200000-0006-4000-8000-000000000006', '0132/IBR/B2', 'YESSOUGNON', 'LAZARD', 'M', 'Ivoirienne', 'Côte d''Ivoire', 'actif', '2023-10-01', (SELECT id FROM levels WHERE code = 'B2')),
-  ('c3200000-0007-4000-8000-000000000007', '0107/IBR/B2', 'GODE DADIE', 'FIRMIN', 'M', 'Ivoirienne', 'Côte d''Ivoire', 'actif', '2023-10-01', (SELECT id FROM levels WHERE code = 'B2'));
+  ('c3200000-0001-4000-8000-000000000001', '0127/IBR/B2', 'ABLAN', 'MARIE JOSEE', 'F', 'Ivoirienne', 'Côte d''Ivoire', 'diplome', '2023-10-01', (SELECT id FROM levels WHERE code = 'B2')),
+  ('c3200000-0002-4000-8000-000000000002', '0128/IBR/B2', 'GNAZALE', 'epse AGOHI-N''GUESSAN NADEGE', 'F', 'Ivoirienne', 'Côte d''Ivoire', 'diplome', '2023-10-01', (SELECT id FROM levels WHERE code = 'B2')),
+  ('c3200000-0003-4000-8000-000000000003', '0129/IBR/B2', 'EBRIN', 'JEAN HENOC', 'M', 'Ivoirienne', 'Côte d''Ivoire', 'diplome', '2023-10-01', (SELECT id FROM levels WHERE code = 'B2')),
+  ('c3200000-0004-4000-8000-000000000004', '0130/IBR/B2', 'SERI OLGA EDWIGE', 'epse SERI', 'F', 'Ivoirienne', 'Côte d''Ivoire', 'diplome', '2023-10-01', (SELECT id FROM levels WHERE code = 'B2')),
+  ('c3200000-0005-4000-8000-000000000005', '0131/IBR/B2', 'YAO YAH ROLANDE', 'epse DJAHI', 'F', 'Ivoirienne', 'Côte d''Ivoire', 'diplome', '2023-10-01', (SELECT id FROM levels WHERE code = 'B2')),
+  ('c3200000-0006-4000-8000-000000000006', '0132/IBR/B2', 'YESSOUGNON', 'LAZARD', 'M', 'Ivoirienne', 'Côte d''Ivoire', 'diplome', '2023-10-01', (SELECT id FROM levels WHERE code = 'B2')),
+  ('c3200000-0007-4000-8000-000000000007', '0107/IBR/B2', 'GODE DADIE', 'FIRMIN', 'M', 'Ivoirienne', 'Côte d''Ivoire', 'suspendu', '2023-10-01', (SELECT id FROM levels WHERE code = 'B2'));
 
 
 -- ============================================================================
