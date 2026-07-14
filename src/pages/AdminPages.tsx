@@ -206,14 +206,10 @@ export function CardsPage() {
                   <div class="rules">
                     Cette carte est strictement personnelle et valide la qualité d'étudiant inscrit à l'Institut Rehoboth. Le scan du code QR confirme sa validité.
                   </div>
-                  <div style="display: flex; justify-content: space-between; gap: 8px; border-top: 1px dashed #cbd5e1; padding-top: 4px; margin-top: 6px; width: 180px; box-sizing: border-box;">
-                    <div style="text-align: left; font-size: 7px; color: #1e40af; line-height: 1.1;">
-                      <span style="color: #64748b; font-weight: bold; font-size: 6px; text-transform: uppercase;">Le Fondateur</span><br/>
+                  <div style="border-top: 1px dashed #cbd5e1; padding-top: 4px; margin-top: 6px; width: 180px; box-sizing: border-box; text-align: right;">
+                    <div style="font-size: 8px; color: #1e40af; line-height: 1.2;">
+                      <span style="color: #64748b; font-weight: bold; font-size: 6.5px; text-transform: uppercase;">Le Fondateur</span><br/>
                       <strong>Apôtre FATO Michel</strong>
-                    </div>
-                    <div style="text-align: right; font-size: 7px; color: #1e40af; line-height: 1.1;">
-                      <span style="color: #64748b; font-weight: bold; font-size: 6px; text-transform: uppercase;">L'Éducatrice</span><br/>
-                      <strong>Mme FATO Rose</strong>
                     </div>
                   </div>
                 </div>
