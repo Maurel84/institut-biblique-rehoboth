@@ -200,7 +200,7 @@ export function CardsPage() {
               </div>
               <div class="back-content">
                 <div class="qr-code">
-                  <img src="https://chart.googleapis.com/chart?chs=80x80&cht=qr&chl=${encodeURIComponent(checkUrl)}&choe=UTF-8" />
+                  <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(checkUrl)}" />
                 </div>
                 <div>
                   <div class="rules">
@@ -337,6 +337,9 @@ export function UsersPage() {
   const { roles } = useRoles();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createForm, setCreateForm] = useState({ first_name: '', last_name: '', email: '', password: '', role_id: '' });
+  const [saving, setSaving] = useState(false);
   const { show } = useToast();
 
   const load = useCallback(async () => {
@@ -362,11 +365,46 @@ export function UsersPage() {
     load();
   }
 
+  async function handleCreateUser(e: React.FormEvent) {
+    e.preventDefault();
+    if (!createForm.first_name || !createForm.last_name || !createForm.email || !createForm.password || !createForm.role_id) {
+      show('Veuillez remplir tous les champs obligatoires', 'error');
+      return;
+    }
+
+    setSaving(true);
+    const { data, error } = await supabase.rpc('admin_create_user', {
+      p_email: createForm.email,
+      p_password: createForm.password,
+      p_first_name: createForm.first_name,
+      p_last_name: createForm.last_name,
+      p_role_id: createForm.role_id
+    });
+
+    setSaving(false);
+    if (error) {
+      show(error.message || 'Erreur lors de la création de l\'utilisateur', 'error');
+    } else {
+      show('Utilisateur créé avec succès !', 'success');
+      setShowCreateModal(false);
+      setCreateForm({ first_name: '', last_name: '', email: '', password: '', role_id: '' });
+      load();
+    }
+  }
+
   if (loading) return <LoadingSpinner />;
 
   return (
     <div className="animate-slide-in">
-      <PageHeader title="Utilisateurs" subtitle={`${users.length} utilisateur(s)`} />
+      <PageHeader 
+        title="Utilisateurs" 
+        subtitle={`${users.length} utilisateur(s)`} 
+        actions={
+          <button className="btn-primary flex items-center gap-2" onClick={() => setShowCreateModal(true)}>
+            <Plus className="w-4 h-4" /> Créer un compte admin
+          </button>
+        }
+      />
 
       <Card className="overflow-hidden">
         <table className="w-full text-sm">
@@ -407,6 +445,78 @@ export function UsersPage() {
           </tbody>
         </table>
       </Card>
+
+      <Modal open={showCreateModal} onClose={() => setShowCreateModal(false)} title="Créer un compte administrateur / enseignant">
+        <form onSubmit={handleCreateUser} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label-field">Nom *</label>
+              <input
+                className="input-field"
+                value={createForm.last_name}
+                onChange={(e) => setCreateForm({ ...createForm, last_name: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <label className="label-field">Prénoms *</label>
+              <input
+                className="input-field"
+                value={createForm.first_name}
+                onChange={(e) => setCreateForm({ ...createForm, first_name: e.target.value })}
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="label-field">Adresse e-mail *</label>
+            <input
+              type="email"
+              className="input-field"
+              value={createForm.email}
+              onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="label-field">Mot de passe *</label>
+            <input
+              type="password"
+              className="input-field"
+              value={createForm.password}
+              onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+              required
+              minLength={6}
+            />
+          </div>
+
+          <div>
+            <label className="label-field">Rôle d'accès *</label>
+            <select
+              className="input-field"
+              value={createForm.role_id}
+              onChange={(e) => setCreateForm({ ...createForm, role_id: e.target.value })}
+              required
+            >
+              <option value="">-- Sélectionner le rôle --</option>
+              {roles.map((r: any) => (
+                <option key={r.id} value={r.id}>{r.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" className="btn-secondary" onClick={() => setShowCreateModal(false)} disabled={saving}>
+              Annuler
+            </button>
+            <button type="submit" className="btn-primary" disabled={saving}>
+              {saving ? 'Création en cours...' : 'Enregistrer'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
@@ -752,7 +862,7 @@ export function DocumentsPage() {
           </table>
 
           <div class="qr-code">
-            <img src="https://chart.googleapis.com/chart?chs=80x80&cht=qr&chl=${encodeURIComponent(validationUrl)}&choe=UTF-8" /><br/>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(validationUrl)}" style="width: 80px; height: 80px;" /><br/>
             <span>Scanner pour vérifier</span>
           </div>
 

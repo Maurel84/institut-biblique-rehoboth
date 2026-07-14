@@ -104,6 +104,23 @@ BEGIN
         AND level_id = target_level_id
     );
 
+  -- To avoid UNIQUE key violations on students.matricule during bulk updates,
+  -- we append a temporary suffix to the matricules of the current cohort.
+  UPDATE students 
+  SET matricule = matricule || '-temp'
+  WHERE id IN (
+    SELECT student_id 
+    FROM enrollments 
+    WHERE academic_year_id = target_year_id 
+      AND level_id = target_level_id
+  ) AND matricule IS NOT NULL AND matricule NOT LIKE '%-temp';
+
+  UPDATE enrollments 
+  SET enrollment_matricule = enrollment_matricule || '-temp'
+  WHERE academic_year_id = target_year_id 
+    AND level_id = target_level_id
+    AND enrollment_matricule IS NOT NULL AND enrollment_matricule NOT LIKE '%-temp';
+
   -- Loop through all validated enrollments for this year and level sorted alphabetically by student name
   idx := start_num;
   FOR r IN 
@@ -130,13 +147,11 @@ BEGIN
         current_level_id = target_level_id
     WHERE id = r.student_id;
 
-    -- Update matricule_sequences
-    DELETE FROM matricule_sequences 
-    WHERE used_by_student = r.student_id 
-      AND level_code = level_code_val;
-
+    -- Upsert sequence number
     INSERT INTO matricule_sequences (sequence_number, level_code, used_by_student, used_at)
-    VALUES (idx, level_code_val, r.student_id, now());
+    VALUES (idx, level_code_val, r.student_id, now())
+    ON CONFLICT (sequence_number, level_code) 
+    DO UPDATE SET used_by_student = EXCLUDED.used_by_student, used_at = EXCLUDED.used_at;
 
     idx := idx + 1;
   END LOOP;
