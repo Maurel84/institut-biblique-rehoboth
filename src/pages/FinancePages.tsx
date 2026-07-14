@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useCurrentAcademicYear, useLevels, useToast } from '../lib/hooks';
-import { Card, PageHeader, LoadingSpinner, Badge, Modal, Select, EmptyState, SearchInput } from '../components/ui';
+import { Card, PageHeader, LoadingSpinner, Badge, Modal, Select, EmptyState, SearchInput, ConfirmDialog } from '../components/ui';
 import { formatFCFA, fullName, formatDate, PAYMENT_METHOD_LABELS, PAYMENT_STATUS_LABELS } from '../lib/utils';
 import type { FeeCategory, TuitionFeeStructure, Payment, Student } from '../types';
 import {
