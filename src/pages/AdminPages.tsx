@@ -21,6 +21,8 @@ export function CardsPage() {
   const [showModal, setShowModal] = useState(false);
   const [students, setStudents] = useState<any[]>([]);
   const [form, setForm] = useState({ student_id: '', level_id: '' });
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const { show } = useToast();
 
   const load = useCallback(async () => {
@@ -44,20 +46,69 @@ export function CardsPage() {
   async function generateCard() {
     if (!form.student_id || !year) { show('Sélectionnez un étudiant', 'error'); return; }
     const student = students.find((s) => s.id === form.student_id);
-    const cardNumber = `IBR-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
-    
-    // Public validation URL
-    const checkUrl = `${window.location.origin}/check-card/${student?.id}`;
-    const qrData = checkUrl;
+    if (!student) return;
 
-    const { error } = await supabase.from('student_cards').insert({
-      card_number: cardNumber, student_id: form.student_id, academic_year_id: year.id,
-      level_id: student?.current_level_id ?? null,
-      qr_code_data: qrData, issue_date: new Date().toISOString().split('T')[0],
-      expiry_date: year.end_date, status: 'generated',
-    });
-    if (error) show(error.message, 'error');
-    else { show('Carte générée avec succès', 'success'); setShowModal(false); setForm({ student_id: '', level_id: '' }); load(); }
+    let finalPhotoUrl = student.photo_url;
+
+    // Verify if photo exists, if not, require photo upload
+    if (!finalPhotoUrl && !photoFile) {
+      show('La photo est obligatoire pour générer la carte d\'étudiant.', 'error');
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      if (photoFile) {
+        const fileExt = photoFile.name.split('.').pop();
+        const filePath = `${student.id}-${Math.random()}.${fileExt}`;
+        
+        // Upload photo to supabase storage bucket
+        const { error: uploadError } = await supabase.storage
+          .from('student-photos')
+          .upload(filePath, photoFile, { cacheControl: '3600', upsert: true });
+
+        if (uploadError) throw new Error("Téléversement photo échoué: " + uploadError.message);
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('student-photos')
+          .getPublicUrl(filePath);
+
+        finalPhotoUrl = publicUrl;
+
+        // Update student photo url in database
+        const { error: updateErr } = await supabase
+          .from('students')
+          .update({ photo_url: finalPhotoUrl })
+          .eq('id', student.id);
+
+        if (updateErr) throw new Error("Mise à jour profil étudiant échouée: " + updateErr.message);
+
+        // Sync local state
+        student.photo_url = finalPhotoUrl;
+      }
+
+      const cardNumber = `IBR-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+      const checkUrl = `${window.location.origin}/check-card/${student.id}`;
+
+      const { error } = await supabase.from('student_cards').insert({
+        card_number: cardNumber, student_id: form.student_id, academic_year_id: year.id,
+        level_id: student.current_level_id ?? null,
+        qr_code_data: checkUrl, issue_date: new Date().toISOString().split('T')[0],
+        expiry_date: year.end_date, status: 'generated',
+      });
+
+      if (error) throw new Error(error.message);
+
+      show('Carte générée avec succès', 'success');
+      setShowModal(false);
+      setForm({ student_id: '', level_id: '' });
+      setPhotoFile(null);
+      load();
+    } catch (err: any) {
+      show(err.message || 'Erreur lors de la génération', 'error');
+    } finally {
+      setUploadingPhoto(false);
+    }
   }
 
   async function updateCardStatus(cardId: string, status: string) {
@@ -96,11 +147,16 @@ export function CardsPage() {
             .footer-card { background: #f8fafc; border-top: 1px solid #e2e8f0; position: absolute; bottom: 0; width: 100%; padding: 6px 10px; font-size: 9px; color: #64748b; font-weight: 600; display: flex; justify-content: space-between; box-sizing: border-box; }
             
             /* Card Back (Verso) */
-            .id-card.back { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 15px; }
-            .qr-code { width: 80px; height: 80px; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; background: #fff; padding: 4px; }
+            .id-card.back { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 10px; background: #faf9f6; }
+            .back-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+            .back-logo { width: 32px; height: 32px; border-radius: 6px; object-fit: contain; border: 1px solid #e2e8f0; background: white; }
+            .back-title { font-weight: 800; font-size: 11px; color: #1e40af; text-align: left; line-height: 1.2; letter-spacing: 0.5px; }
+            .back-subtitle { font-size: 8px; color: #64748b; font-weight: bold; display: block; }
+            .back-content { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; box-sizing: border-box; padding: 0 10px; }
+            .qr-code { width: 62px; height: 62px; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; background: #fff; padding: 2px; border-radius: 4px; }
             .qr-code img { width: 100%; height: 100%; }
-            .rules { font-size: 8px; color: #475569; margin-top: 8px; line-height: 1.3; }
-            .signature { font-size: 9px; font-weight: bold; margin-top: 10px; color: #1e40af; border-top: 1px dashed #cbd5e1; width: 80%; pt: 4px; }
+            .rules { font-size: 7px; color: #475569; text-align: left; line-height: 1.3; max-width: 190px; }
+            .signature { font-size: 8px; font-weight: 800; margin-top: 8px; color: #1e40af; border-top: 1px dashed #cbd5e1; pt: 4px; text-align: left; }
           </style>
         </head>
         <body>
@@ -134,16 +190,25 @@ export function CardsPage() {
             
             <!-- VERSO (Back) -->
             <div class="id-card back">
-              <div style="font-weight: bold; font-size: 11px; color: #1e40af; margin-bottom: 5px;">VÉRIFICATION SÉCURISÉE</div>
-              <div class="qr-code">
-                <!-- Simulating QR Code with Google Chart API for direct rendering -->
-                <img src="https://chart.googleapis.com/chart?chs=80x80&cht=qr&chl=${encodeURIComponent(checkUrl)}&choe=UTF-8" />
+              <div class="back-header">
+                <img src="/Logo_IBR.jpeg" class="back-logo" />
+                <div class="back-title">
+                  INSTITUT BIBLIQUE REHOBOTH
+                  <span class="back-subtitle">COTONOU, BÉNIN</span>
+                </div>
               </div>
-              <div class="rules">
-                Cette carte est strictement personnelle. En cas de perte, veuillez contacter le secrétariat de l'institut. Le scan du code QR confirme la validité du dossier étudiant.
-              </div>
-              <div class="signature">
-                Le Directeur Général
+              <div class="back-content">
+                <div class="qr-code">
+                  <img src="https://chart.googleapis.com/chart?chs=80x80&cht=qr&chl=${encodeURIComponent(checkUrl)}&choe=UTF-8" />
+                </div>
+                <div>
+                  <div class="rules">
+                    Cette carte est strictement personnelle et valide la qualité d'étudiant inscrit à l'Institut Rehoboth. Le scan du code QR confirme sa validité.
+                  </div>
+                  <div class="signature">
+                    Le Secrétaire Général
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -203,15 +268,57 @@ export function CardsPage() {
         </div>
       )}
 
-      <Modal open={showModal} onClose={() => setShowModal(false)} title="Générer une carte d'étudiant">
+      <Modal open={showModal} onClose={() => { setShowModal(false); setPhotoFile(null); }} title="Générer une carte d'étudiant">
         <div className="space-y-4">
-          <div><label className="label-field">Étudiant *</label>
-            <select className="input-field" value={form.student_id} onChange={(e) => setForm({ ...form, student_id: e.target.value })}>
-              <option value="">--</option>
+          <div>
+            <label className="label-field">Étudiant *</label>
+            <select className="input-field" value={form.student_id} onChange={(e) => { setForm({ ...form, student_id: e.target.value }); setPhotoFile(null); }}>
+              <option value="">-- Sélectionner l'étudiant --</option>
               {students.map((s) => <option key={s.id} value={s.id}>{fullName(s.last_name, s.first_name)} ({s.matricule ?? 'sans matricule'})</option>)}
             </select>
           </div>
-          <div className="flex justify-end gap-3 pt-2"><button className="btn-secondary" onClick={() => setShowModal(false)}>Annuler</button><button className="btn-primary" onClick={generateCard}>Générer</button></div>
+
+          {form.student_id && (() => {
+            const student = students.find((s) => s.id === form.student_id);
+            const hasPhoto = !!student?.photo_url;
+            return (
+              <div className="p-3.5 bg-gray-50 rounded-xl space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-14 bg-gray-200 rounded border flex items-center justify-center text-xs text-gray-500 overflow-hidden font-bold">
+                    {hasPhoto ? <img src={student.photo_url} className="w-full h-full object-cover" /> : 'SANS PHOTO'}
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 text-sm">{student ? fullName(student.last_name, student.first_name) : ''}</h4>
+                    <p className="text-xs text-gray-500">Matricule: {student?.matricule ?? 'N/A'}</p>
+                  </div>
+                </div>
+
+                {!hasPhoto && (
+                  <div className="border-t pt-3 space-y-2">
+                    <p className="text-xs text-amber-600 font-semibold flex items-center gap-1.5 animate-pulse">
+                      <AlertTriangle className="w-4 h-4" /> Photo obligatoire pour la génération de la carte :
+                    </p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setPhotoFile(file);
+                      }}
+                      className="text-xs text-gray-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-ibr-50 file:text-ibr-700 hover:file:bg-ibr-100 cursor-pointer w-full"
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button className="btn-secondary" onClick={() => { setShowModal(false); setPhotoFile(null); }} disabled={uploadingPhoto}>Annuler</button>
+            <button className="btn-primary" onClick={generateCard} disabled={uploadingPhoto}>
+              {uploadingPhoto ? 'Envoi & Génération...' : 'Générer la carte'}
+            </button>
+          </div>
         </div>
       </Modal>
     </div>
