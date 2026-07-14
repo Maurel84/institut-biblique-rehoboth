@@ -195,7 +195,7 @@ export function CardsPage() {
                 <img src="/Logo_IBR.jpeg" class="back-logo" />
                 <div class="back-title">
                   INSTITUT BIBLIQUE REHOBOTH
-                  <span class="back-subtitle">COTONOU, BÉNIN</span>
+                  <span class="back-subtitle">BONOUA, CÔTE D'IVOIRE</span>
                 </div>
               </div>
               <div class="back-content">
