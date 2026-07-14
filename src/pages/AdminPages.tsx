@@ -23,6 +23,7 @@ export function CardsPage() {
   const [form, setForm] = useState({ student_id: '', level_id: '' });
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const { settings } = useSettings();
   const { show } = useToast();
 
   const load = useCallback(async () => {
@@ -165,10 +166,11 @@ export function CardsPage() {
           <div class="card-container">
             <!-- RECTO (Front) -->
             <div class="id-card">
-              <div class="header">
+              <div class="header" style="padding: 6px 10px;">
                 <div>
                   <div class="logo">INSTITUT BIBLIQUE REHOBOTH</div>
-                  <div class="tagline">Bonoua, Côte d'Ivoire | Tel: +225 07000000</div>
+                  <div class="tagline">Bonoua, Côte d'Ivoire | Tél: ${settings?.school_phone ?? '+225 07000000'}</div>
+                  <div class="tagline" style="font-size: 6px; font-weight: bold; color: #facc15; font-style: italic; margin-top: 1px; letter-spacing: 0.2px;">« VIVRE CHAQUE JOUR LA PLÉNITUDE DE LA PAROLE DE DIEU »</div>
                 </div>
               </div>
               <div class="content">
@@ -191,11 +193,12 @@ export function CardsPage() {
             
             <!-- VERSO (Back) -->
             <div class="id-card back">
-              <div class="back-header">
+              <div class="back-header" style="margin-bottom: 6px;">
                 <img src="/Logo_IBR.jpeg" class="back-logo" />
                 <div class="back-title">
                   INSTITUT BIBLIQUE REHOBOTH
                   <span class="back-subtitle">BONOUA, CÔTE D'IVOIRE</span>
+                  <span class="back-slogan" style="display: block; font-size: 5px; font-weight: bold; color: #64748b; font-style: italic; margin-top: 1px;">VIVRE CHAQUE JOUR LA PLÉNITUDE DE LA PAROLE DE DIEU</span>
                 </div>
               </div>
               <div class="back-content">

@@ -35,6 +35,7 @@ export function LoginPage() {
           <img src={logoSrc} alt="Logo IBR" className="w-24 h-24 rounded-2xl object-contain bg-white p-1 mx-auto mb-4 shadow-lg" />
           <h1 className="text-2xl font-bold text-white">IBR Gestion Académique</h1>
           <p className="text-ibr-300 text-sm mt-1">Institut Biblique Rehoboth - Bonoua</p>
+          <p className="text-gold-300 text-xs font-bold mt-2 tracking-wide uppercase">VIVRE CHAQUE JOUR LA PLÉNITUDE DE LA PAROLE DE DIEU</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
