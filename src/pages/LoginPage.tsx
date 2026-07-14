@@ -4,12 +4,9 @@ import { useAuth } from '../lib/auth';
 const logoSrc = '/Logo_IBR.jpeg';
 
 export function LoginPage() {
-  const { signIn, signUp } = useAuth();
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -18,13 +15,8 @@ export function LoginPage() {
     setError(null);
     setLoading(true);
 
-    if (mode === 'login') {
-      const { error } = await signIn(email, password);
-      if (error) setError(error);
-    } else {
-      const { error } = await signUp(email, password, firstName, lastName);
-      if (error) setError(error);
-    }
+    const { error } = await signIn(email, password);
+    if (error) setError(error);
     setLoading(false);
   }
 
@@ -40,35 +32,10 @@ export function LoginPage() {
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">
-            {mode === 'login' ? 'Connexion' : 'Créer un compte'}
+            Connexion
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {mode === 'signup' && (
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="label-field">Prénom</label>
-                  <input
-                    type="text"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    className="input-field"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="label-field">Nom</label>
-                  <input
-                    type="text"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    className="input-field"
-                    required
-                  />
-                </div>
-              </div>
-            )}
-
             <div>
               <label className="label-field">Adresse email</label>
               <input
@@ -106,30 +73,9 @@ export function LoginPage() {
               className="w-full btn-primary flex items-center justify-center gap-2"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {mode === 'login' ? 'Se connecter' : 'Créer le compte'}
+              Se connecter
             </button>
           </form>
-
-          {mode === 'login' && (
-            <div className="mt-4 bg-ibr-50 border border-ibr-200 rounded-lg px-4 py-3 text-xs text-ibr-700">
-              <p className="font-semibold mb-1">💡 Premier compte inscrit</p>
-              <p>Le tout premier compte enregistré via "Créer un compte" sera automatiquement promu <b>Super Administrateur</b>.</p>
-            </div>
-          )}
-
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => {
-                setMode(mode === 'login' ? 'signup' : 'login');
-                setError(null);
-              }}
-              className="text-sm text-ibr-600 hover:text-ibr-800 font-medium"
-            >
-              {mode === 'login'
-                ? 'Pas de compte ? Créer un compte'
-                : 'Déjà un compte ? Se connecter'}
-            </button>
-          </div>
         </div>
 
         <p className="text-center text-ibr-400 text-xs mt-6">
