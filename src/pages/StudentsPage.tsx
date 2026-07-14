@@ -6,7 +6,7 @@ import { Card, PageHeader, LoadingSpinner, SearchInput, Select, Badge, EmptyStat
 import { ACADEMIC_STATUS_LABELS, fullName, formatDate, formatFCFA } from '../lib/utils';
 import type { Student } from '../types';
 import {
-  Users, Plus, Eye, Search, Edit, Trash2, Calendar, Clock,
+  Users, Plus, Eye, Search, Edit, Trash2, Calendar, Clock, RefreshCw,
   ArrowUpRight, Award, CreditCard, DollarSign, Package, Check, ChevronRight
 } from 'lucide-react';
 
@@ -19,6 +19,8 @@ export function StudentsListPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [levelFilter, setLevelFilter] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<Student | null>(null);
+  const { year } = useCurrentAcademicYear();
+  const [resequencing, setResequencing] = useState(false);
   const { show } = useToast();
 
   const loadStudents = useCallback(async () => {
@@ -51,15 +53,41 @@ export function StudentsListPage() {
     }
   }
 
+  async function handleManualResequence() {
+    if (!year) { show("Année académique non chargée", "error"); return; }
+    if (!window.confirm("Êtes-vous sûr de vouloir réordonner par ordre alphabétique tous les matricules des élèves de cette année ?")) return;
+
+    setResequencing(true);
+    try {
+      for (const lvl of levels) {
+        await supabase.rpc('resequence_matricules_alphabetically', {
+          target_year_id: year.id,
+          target_level_id: lvl.id
+        });
+      }
+      show("Tous les matricules ont été réordonnés par ordre alphabétique avec succès !", "success");
+      loadStudents();
+    } catch (err: any) {
+      show(err.message || "Erreur lors du réordonnancement", "error");
+    } finally {
+      setResequencing(false);
+    }
+  }
+
   return (
     <div className="animate-slide-in">
       <PageHeader
         title="Liste des étudiants"
         subtitle={`${students.length} étudiant(s) inscrit(s)`}
         actions={
-          <button className="btn-primary flex items-center gap-2" onClick={() => navigate('/students/new')}>
-            <Plus className="w-4 h-4" /> Nouvel étudiant
-          </button>
+          <div className="flex gap-2">
+            <button className="btn-secondary flex items-center gap-2" onClick={handleManualResequence} disabled={resequencing}>
+              <RefreshCw className={`w-4 h-4 ${resequencing ? 'animate-spin' : ''}`} /> {resequencing ? 'Réordonnancement...' : 'Réordonner les matricules'}
+            </button>
+            <button className="btn-primary flex items-center gap-2" onClick={() => navigate('/students/new')}>
+              <Plus className="w-4 h-4" /> Nouvel étudiant
+            </button>
+          </div>
         }
       />
 
