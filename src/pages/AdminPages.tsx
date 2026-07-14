@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { useCurrentAcademicYear, useLevels, useRoles, useToast, useSettings } from '../lib/hooks';
@@ -368,6 +369,15 @@ export function UsersPage() {
     load();
   }
 
+  async function togglePermission(userId: string, field: string, current: boolean) {
+    const { error } = await supabase
+      .from('user_profiles')
+      .update({ [field]: !current })
+      .eq('user_id', userId);
+    if (error) show(error.message, 'error');
+    else { show('Permission mise à jour', 'success'); load(); }
+  }
+
   async function handleCreateUser(e: React.FormEvent) {
     e.preventDefault();
     if (!createForm.first_name || !createForm.last_name || !createForm.email || !createForm.password || !createForm.role_id) {
@@ -376,22 +386,54 @@ export function UsersPage() {
     }
 
     setSaving(true);
-    const { data, error } = await supabase.rpc('admin_create_user', {
-      p_email: createForm.email,
-      p_password: createForm.password,
-      p_first_name: createForm.first_name,
-      p_last_name: createForm.last_name,
-      p_role_id: createForm.role_id
-    });
+    try {
+      const tempSupabase = createClient(
+        import.meta.env.VITE_SUPABASE_URL,
+        import.meta.env.VITE_SUPABASE_ANON_KEY,
+        {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false
+          }
+        }
+      );
 
-    setSaving(false);
-    if (error) {
-      show(error.message || 'Erreur lors de la création de l\'utilisateur', 'error');
-    } else {
+      const { data: signUpData, error: signUpErr } = await tempSupabase.auth.signUp({
+        email: createForm.email,
+        password: createForm.password
+      });
+
+      if (signUpErr) {
+        show(signUpErr.message, 'error');
+        setSaving(false);
+        return;
+      }
+
+      if (signUpData.user) {
+        const { error: profileErr } = await supabase.from('user_profiles').insert({
+          user_id: signUpData.user.id,
+          first_name: createForm.first_name,
+          last_name: createForm.last_name,
+          role_id: createForm.role_id,
+          is_active: true
+        });
+
+        if (profileErr) {
+          show(profileErr.message, 'error');
+          setSaving(false);
+          return;
+        }
+      }
+
       show('Utilisateur créé avec succès !', 'success');
       setShowCreateModal(false);
       setCreateForm({ first_name: '', last_name: '', email: '', password: '', role_id: '' });
       load();
+    } catch (err: any) {
+      show(err.message || 'Erreur lors de la création', 'error');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -415,7 +457,11 @@ export function UsersPage() {
             <tr>
               <th className="text-left px-5 py-3.5 font-semibold text-gray-600">Nom complet</th>
               <th className="text-left px-5 py-3.5 font-semibold text-gray-600">Rôle d'accès</th>
-              <th className="text-center px-5 py-3.5 font-semibold text-gray-600">Statut</th>
+              <th className="text-center px-2 py-3.5 font-semibold text-gray-600">Acad.</th>
+              <th className="text-center px-2 py-3.5 font-semibold text-gray-600">Notes</th>
+              <th className="text-center px-2 py-3.5 font-semibold text-gray-600">Finance</th>
+              <th className="text-center px-2 py-3.5 font-semibold text-gray-600">Admin</th>
+              <th className="text-center px-4 py-3.5 font-semibold text-gray-600">Statut</th>
               <th className="text-left px-5 py-3.5 font-semibold text-gray-600">Dernière connexion</th>
             </tr>
           </thead>
@@ -428,7 +474,7 @@ export function UsersPage() {
                 </td>
                 <td className="px-5 py-3.5">
                   <select
-                    className="input-field text-sm max-w-[200px]"
+                    className="input-field text-sm max-w-[150px]"
                     value={u.role_id ?? ''}
                     onChange={(e) => updateRole(u.user_id, e.target.value)}
                     disabled={u.user_id === profile?.user_id}
@@ -437,7 +483,43 @@ export function UsersPage() {
                     {roles.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
                   </select>
                 </td>
-                <td className="px-5 py-3.5 text-center">
+                <td className="px-2 py-3.5 text-center">
+                  <input
+                    type="checkbox"
+                    checked={u.can_manage_academic || false}
+                    onChange={() => togglePermission(u.user_id, 'can_manage_academic', u.can_manage_academic)}
+                    disabled={u.user_id === profile?.user_id}
+                    className="rounded text-ibr-600 focus:ring-ibr-500 w-4 h-4 cursor-pointer"
+                  />
+                </td>
+                <td className="px-2 py-3.5 text-center">
+                  <input
+                    type="checkbox"
+                    checked={u.can_manage_grades || false}
+                    onChange={() => togglePermission(u.user_id, 'can_manage_grades', u.can_manage_grades)}
+                    disabled={u.user_id === profile?.user_id}
+                    className="rounded text-ibr-600 focus:ring-ibr-500 w-4 h-4 cursor-pointer"
+                  />
+                </td>
+                <td className="px-2 py-3.5 text-center">
+                  <input
+                    type="checkbox"
+                    checked={u.can_manage_finances || false}
+                    onChange={() => togglePermission(u.user_id, 'can_manage_finances', u.can_manage_finances)}
+                    disabled={u.user_id === profile?.user_id}
+                    className="rounded text-ibr-600 focus:ring-ibr-500 w-4 h-4 cursor-pointer"
+                  />
+                </td>
+                <td className="px-2 py-3.5 text-center">
+                  <input
+                    type="checkbox"
+                    checked={u.can_manage_users || false}
+                    onChange={() => togglePermission(u.user_id, 'can_manage_users', u.can_manage_users)}
+                    disabled={u.user_id === profile?.user_id}
+                    className="rounded text-ibr-600 focus:ring-ibr-500 w-4 h-4 cursor-pointer"
+                  />
+                </td>
+                <td className="px-4 py-3.5 text-center">
                   <button onClick={() => toggleActive(u.user_id, u.is_active)}>
                     <Badge color={u.is_active ? 'green' : 'red'}>{u.is_active ? 'Actif' : 'Inactif'}</Badge>
                   </button>

@@ -18,6 +18,10 @@ export interface UserProfile {
   is_active: boolean;
   last_login: string | null;
   role?: Role;
+  can_manage_academic?: boolean;
+  can_manage_grades?: boolean;
+  can_manage_finances?: boolean;
+  can_manage_users?: boolean;
 }
 
 export interface AcademicYear {

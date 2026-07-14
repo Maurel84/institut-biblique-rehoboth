@@ -15,6 +15,7 @@ interface NavItem {
   icon: typeof LayoutDashboard;
   path: string;
   roles?: string[];
+  permission?: string;
 }
 
 interface NavSection {
@@ -32,48 +33,48 @@ const NAV_SECTIONS: NavSection[] = [
   {
     title: 'Étudiants',
     items: [
-      { label: 'Liste des étudiants', icon: Users, path: '/students' },
-      { label: 'Nouvel étudiant', icon: UserPlus, path: '/students/new' },
-      { label: 'Inscriptions', icon: FileText, path: '/enrollments' },
+      { label: 'Liste des étudiants', icon: Users, path: '/students', permission: 'can_manage_academic' },
+      { label: 'Nouvel étudiant', icon: UserPlus, path: '/students/new', permission: 'can_manage_academic' },
+      { label: 'Inscriptions', icon: FileText, path: '/enrollments', permission: 'can_manage_academic' },
     ],
   },
   {
     title: 'Académique',
     items: [
-      { label: 'Années académiques', icon: Calendar, path: '/academic-years' },
-      { label: 'Programmes', icon: School, path: '/programs' },
-      { label: 'Niveaux', icon: Layers, path: '/levels' },
-      { label: 'Enseignants', icon: GraduationCap, path: '/teachers' },
-      { label: 'Modules', icon: BookOpen, path: '/modules' },
-      { label: 'Matières', icon: BookMarked, path: '/subjects' },
-      { label: 'Saisie des notes', icon: ClipboardList, path: '/grades' },
-      { label: 'Moyennes & classements', icon: Award, path: '/rankings' },
+      { label: 'Années académiques', icon: Calendar, path: '/academic-years', permission: 'can_manage_academic' },
+      { label: 'Programmes', icon: School, path: '/programs', permission: 'can_manage_academic' },
+      { label: 'Niveaux', icon: Layers, path: '/levels', permission: 'can_manage_academic' },
+      { label: 'Enseignants', icon: GraduationCap, path: '/teachers', permission: 'can_manage_academic' },
+      { label: 'Modules', icon: BookOpen, path: '/modules', permission: 'can_manage_academic' },
+      { label: 'Matières', icon: BookMarked, path: '/subjects', permission: 'can_manage_academic' },
+      { label: 'Saisie des notes', icon: ClipboardList, path: '/grades', permission: 'can_manage_grades' },
+      { label: 'Moyennes & classements', icon: Award, path: '/rankings', permission: 'can_manage_grades' },
     ],
   },
   {
     title: 'Finances',
     items: [
-      { label: 'Frais de scolarité', icon: CreditCard, path: '/fees' },
-      { label: 'Paiements', icon: Receipt, path: '/payments' },
-      { label: 'Fascicules', icon: Package, path: '/booklets' },
-      { label: 'Stock', icon: Package, path: '/stock' },
+      { label: 'Frais de scolarité', icon: CreditCard, path: '/fees', permission: 'can_manage_finances' },
+      { label: 'Paiements', icon: Receipt, path: '/payments', permission: 'can_manage_finances' },
+      { label: 'Fascicules', icon: Package, path: '/booklets', permission: 'can_manage_finances' },
+      { label: 'Stock', icon: Package, path: '/stock', permission: 'can_manage_finances' },
     ],
   },
   {
     title: 'Cartes & Documents',
     items: [
-      { label: 'Cartes d\'étudiant', icon: IdCardIcon, path: '/cards' },
-      { label: 'Documents', icon: FileText, path: '/documents' },
+      { label: 'Cartes d\'étudiant', icon: IdCardIcon, path: '/cards', permission: 'can_manage_academic' },
+      { label: 'Documents', icon: FileText, path: '/documents', permission: 'can_manage_academic' },
     ],
   },
   {
     title: 'Administration',
     items: [
-      { label: 'Utilisateurs', icon: UsersRound, path: '/users', roles: ['super_admin'] },
-      { label: 'Rôles & permissions', icon: Shield, path: '/roles', roles: ['super_admin'] },
-      { label: 'Paramètres', icon: Settings, path: '/settings', roles: ['super_admin'] },
-      { label: 'Journal d\'audit', icon: FileBarChart, path: '/audit', roles: ['super_admin'] },
-      { label: 'Contrôle anomalies', icon: AlertTriangle, path: '/archives' },
+      { label: 'Utilisateurs', icon: UsersRound, path: '/users', permission: 'can_manage_users' },
+      { label: 'Rôles & permissions', icon: Shield, path: '/roles', permission: 'can_manage_users' },
+      { label: 'Paramètres', icon: Settings, path: '/settings', permission: 'can_manage_users' },
+      { label: 'Journal d\'audit', icon: FileBarChart, path: '/audit', permission: 'can_manage_users' },
+      { label: 'Contrôle anomalies', icon: AlertTriangle, path: '/archives', permission: 'can_manage_users' },
     ],
   },
 ];
@@ -89,8 +90,14 @@ export function Layout({ children }: { children: ReactNode }) {
   const filteredSections = NAV_SECTIONS.map((section) => ({
     ...section,
     items: section.items.filter((item) => {
-      if (!item.roles) return true;
-      return profile?.role?.name && item.roles.includes(profile.role.name);
+      if (profile?.role?.name === 'super_admin') return true;
+      if (item.permission) {
+        return !!(profile as any)?.[item.permission];
+      }
+      if (item.roles) {
+        return profile?.role?.name && item.roles.includes(profile.role.name);
+      }
+      return true;
     }),
   })).filter((section) => section.items.length > 0);
 
