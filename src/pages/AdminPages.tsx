@@ -125,10 +125,18 @@ export function CardsPage() {
   // Impression de la carte Recto-Verso
   function printStudentCard(c: any) {
     const checkUrl = c.qr_code_data || `${window.location.origin}/check-card/${c.student?.id}`;
+    const infoValue = settings.institute_info?.value as any;
+    const schoolPhone = infoValue?.phone || '+225 07000000';
+    const schoolAddress = infoValue?.address || 'Bonoua, Côte d\'Ivoire';
+    const schoolSlogan = infoValue?.slogan || 'VIVRE CHAQUE JOUR LA PLÉNITUDE DE LA PAROLE DE DIEU';
+
     const html = `
       <html>
         <head>
           <title>Carte d'étudiant - ${fullName(c.student?.last_name, c.student?.first_name)}</title>
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
           <style>
             @media print {
               body { margin: 0; padding: 0; background: white; }
@@ -136,42 +144,243 @@ export function CardsPage() {
             }
             body { font-family: 'Outfit', sans-serif; display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 20px; }
             .card-container { display: flex; gap: 40px; }
-            .id-card { width: 325px; height: 204px; border: 1px solid #1e40af; border-radius: 12px; position: relative; overflow: hidden; box-sizing: border-box; background: white; }
-            .header { background: #1e40af; color: white; padding: 10px; display: flex; align-items: center; gap: 8px; }
-            .logo { font-weight: 800; font-size: 14px; letter-spacing: 1px; }
-            .tagline { font-size: 8px; opacity: 0.8; }
-            .content { display: flex; padding: 10px; gap: 10px; }
-            .photo-box { width: 70px; height: 90px; border: 2px solid #1e40af; background: #f0f4ff; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #1e40af; font-weight: bold; overflow: hidden; }
-            .photo-box img { width: 100%; height: 100%; object-fit: cover; }
-            .details { font-size: 11px; color: #1e293b; display: flex; flex-direction: column; gap: 4px; justify-content: center; }
-            .details .name { font-weight: bold; font-size: 13px; color: #0f172a; text-transform: uppercase; }
-            .details .matricule { font-family: monospace; font-weight: bold; color: #1e40af; }
-            .footer-card { background: #f8fafc; border-top: 1px solid #e2e8f0; position: absolute; bottom: 0; width: 100%; padding: 6px 10px; font-size: 9px; color: #64748b; font-weight: 600; display: flex; justify-content: space-between; box-sizing: border-box; }
+            
+            /* Ultra Modern Student Card Styling */
+            .id-card { 
+              width: 325px; 
+              height: 204px; 
+              border: 1px solid rgba(30, 58, 138, 0.15); 
+              border-radius: 16px; 
+              position: relative; 
+              overflow: hidden; 
+              box-sizing: border-box; 
+              background: linear-gradient(145deg, #ffffff, #f8fafc); 
+              box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+            }
+            .header { 
+              background: linear-gradient(135deg, #1e3a8a, #2563eb); 
+              color: white; 
+              padding: 10px 14px; 
+              position: relative;
+            }
+            .header::after {
+              content: '';
+              position: absolute;
+              bottom: 0;
+              right: 0;
+              width: 60px;
+              height: 100%;
+              background: linear-gradient(135deg, transparent, rgba(250, 204, 21, 0.15));
+              clip-path: polygon(100% 0, 0 100%, 100% 100%);
+            }
+            .logo { 
+              font-weight: 800; 
+              font-size: 13px; 
+              letter-spacing: 0.8px;
+              text-transform: uppercase;
+              text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            }
+            .tagline { 
+              font-size: 7px; 
+              opacity: 0.85; 
+              margin-top: 1px;
+            }
+            .slogan-tag {
+              font-size: 5.5px; 
+              font-weight: 800; 
+              color: #facc15; 
+              font-style: italic; 
+              margin-top: 2px; 
+              letter-spacing: 0.2px;
+              text-transform: uppercase;
+            }
+            .content { 
+              display: flex; 
+              padding: 10px 14px; 
+              gap: 12px; 
+            }
+            .photo-box { 
+              width: 74px; 
+              height: 94px; 
+              border: 1px solid rgba(30, 58, 138, 0.15); 
+              background: #f1f5f9; 
+              border-radius: 8px; 
+              display: flex; 
+              align-items: center; 
+              justify-content: center; 
+              font-size: 20px; 
+              color: #1e3a8a; 
+              font-weight: bold; 
+              overflow: hidden; 
+              box-shadow: 0 4px 10px rgba(30, 58, 138, 0.05);
+            }
+            .photo-box img { 
+              width: 100%; 
+              height: 100%; 
+              object-fit: cover; 
+            }
+            .details { 
+              font-size: 9.5px; 
+              color: #475569; 
+              display: flex; 
+              flex-direction: column; 
+              gap: 3.5px; 
+              justify-content: center; 
+              flex: 1;
+            }
+            .details .label {
+              font-size: 6.5px;
+              text-transform: uppercase;
+              color: #94a3b8;
+              font-weight: 800;
+              margin-bottom: -2px;
+              letter-spacing: 0.3px;
+            }
+            .details .value {
+              font-weight: 700;
+              color: #1e293b;
+            }
+            .details .name { 
+              font-weight: 800; 
+              font-size: 11.5px; 
+              color: #0f172a; 
+              text-transform: uppercase;
+              line-height: 1.2;
+              margin-bottom: 2px;
+              background: linear-gradient(135deg, #0f172a, #1e3a8a);
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+            }
+            .details .matricule { 
+              font-family: monospace; 
+              font-weight: 800; 
+              color: #2563eb; 
+              font-size: 10px;
+            }
+            .footer-card { 
+              background: linear-gradient(180deg, #f8fafc, #f1f5f9); 
+              border-top: 1px solid #e2e8f0; 
+              position: absolute; 
+              bottom: 0; 
+              width: 100%; 
+              padding: 5px 14px; 
+              font-size: 7.5px; 
+              color: #64748b; 
+              font-weight: 800; 
+              display: flex; 
+              justify-content: space-between; 
+              box-sizing: border-box; 
+              letter-spacing: 0.5px;
+            }
             
             /* Card Back (Verso) */
-            .id-card.back { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 10px; background: #faf9f6; }
-            .back-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
-            .back-logo { width: 32px; height: 32px; border-radius: 6px; object-fit: contain; border: 1px solid #e2e8f0; background: white; }
-            .back-title { font-weight: 800; font-size: 11px; color: #1e40af; text-align: left; line-height: 1.2; letter-spacing: 0.5px; }
-            .back-subtitle { font-size: 8px; color: #64748b; font-weight: bold; display: block; }
-            .back-content { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; box-sizing: border-box; padding: 0 10px; }
-            .qr-code { width: 62px; height: 62px; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; background: #fff; padding: 2px; border-radius: 4px; }
-            .qr-code img { width: 100%; height: 100%; }
-            .rules { font-size: 7px; color: #475569; text-align: left; line-height: 1.3; max-width: 190px; }
-            .signature { font-size: 8px; font-weight: 800; margin-top: 8px; color: #1e40af; border-top: 1px dashed #cbd5e1; pt: 4px; text-align: left; }
+            .id-card.back { 
+              display: flex; 
+              flex-direction: column; 
+              align-items: center; 
+              justify-content: space-between; 
+              padding: 10px 14px; 
+              background: radial-gradient(circle at 10% 20%, #ffffff 0%, #f8fafc 100%); 
+            }
+            .back-header { 
+              display: flex; 
+              align-items: center; 
+              gap: 8px; 
+              width: 100%;
+              border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+              padding-bottom: 4px;
+            }
+            .back-logo { 
+              width: 26px; 
+              height: 26px; 
+              border-radius: 6px; 
+              object-fit: contain; 
+              box-shadow: 0 2px 6px rgba(0,0,0,0.05); 
+              background: white; 
+            }
+            .back-title { 
+              font-weight: 800; 
+              font-size: 10px; 
+              color: #1e3a8a; 
+              text-align: left; 
+              line-height: 1.2; 
+              letter-spacing: 0.5px; 
+            }
+            .back-subtitle { 
+              font-size: 7px; 
+              color: #64748b; 
+              font-weight: 700; 
+              display: block; 
+            }
+            .back-content { 
+              display: flex; 
+              align-items: center; 
+              justify-content: space-between; 
+              gap: 12px; 
+              width: 100%; 
+              box-sizing: border-box; 
+              margin-top: 4px;
+            }
+            .qr-code { 
+              width: 62px; 
+              height: 62px; 
+              border: 1px solid rgba(30, 58, 138, 0.1); 
+              display: flex; 
+              align-items: center; 
+              justify-content: center; 
+              background: #fff; 
+              padding: 2px; 
+              border-radius: 6px; 
+              box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            }
+            .qr-code img { 
+              width: 100%; 
+              height: 100%; 
+            }
+            .rules { 
+              font-size: 6.5px; 
+              color: #475569; 
+              text-align: left; 
+              line-height: 1.35; 
+              flex: 1;
+              font-weight: 500;
+            }
+            .signature-block { 
+              border-top: 1px dashed #cbd5e1; 
+              padding-top: 3px; 
+              margin-top: 4px; 
+              width: 100%; 
+              display: flex;
+              flex-direction: column;
+              align-items: flex-end;
+            }
+            .slogan-back {
+              font-size: 5.5px;
+              font-weight: 800;
+              color: #1e3a8a;
+              font-style: italic;
+              margin: 4px 0;
+              text-transform: uppercase;
+              letter-spacing: 0.2px;
+              width: 100%;
+              text-align: center;
+              border-top: 1px solid #f1f5f9;
+              border-bottom: 1px solid #f1f5f9;
+              padding: 3px 0;
+            }
           </style>
         </head>
         <body>
-          <button class="no-print" onclick="window.print()" style="padding: 10px 20px; background: #1e40af; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 20px;">Imprimer les cartes (Recto / Verso)</button>
+          <button class="no-print" onclick="window.print()" style="padding: 10px 20px; background: #1e3a8a; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 20px; font-family: 'Outfit', sans-serif;">Imprimer les cartes (Recto / Verso)</button>
           
           <div class="card-container">
             <!-- RECTO (Front) -->
             <div class="id-card">
-              <div class="header" style="padding: 6px 10px;">
+              <div class="header">
                 <div>
                   <div class="logo">INSTITUT BIBLIQUE REHOBOTH</div>
-                  <div class="tagline">Bonoua, Côte d'Ivoire | Tél: ${settings?.school_phone ?? '+225 07000000'}</div>
-                  <div class="tagline" style="font-size: 6px; font-weight: bold; color: #facc15; font-style: italic; margin-top: 1px; letter-spacing: 0.2px;">« VIVRE CHAQUE JOUR LA PLÉNITUDE DE LA PAROLE DE DIEU »</div>
+                  <div class="tagline">${schoolAddress} | Tél: ${schoolPhone}</div>
+                  <div class="slogan-tag">« ${schoolSlogan} »</div>
                 </div>
               </div>
               <div class="content">
@@ -179,40 +388,50 @@ export function CardsPage() {
                   ${c.student?.photo_url ? `<img src="${c.student.photo_url}" />` : 'IBR'}
                 </div>
                 <div class="details">
+                  <div class="label">Nom complet</div>
                   <div class="name">${fullName(c.student?.last_name, c.student?.first_name)}</div>
-                  <div>Matricule: <span class="matricule">${c.student?.matricule ?? '-'}</span></div>
-                  <div>Niveau: <strong>${c.level?.name ?? '-'}</strong></div>
-                  <div>Mention: <strong>${c.level?.code === 'B2' ? 'Diplôme' : 'Certificat'}</strong></div>
-                  <div>Année Académique: <strong>${year?.name ?? ''}</strong></div>
+                  
+                  <div class="label">Numéro Matricule</div>
+                  <div class="matricule">${c.student?.matricule ?? '-'}</div>
+                  
+                  <div class="label">Niveau d'études</div>
+                  <div class="value">${c.level?.name ?? '-'}</div>
+                  
+                  <div class="label">Mention académique</div>
+                  <div class="value">${c.level?.code === 'B2' ? 'Diplôme' : 'Certificat'}</div>
                 </div>
               </div>
               <div class="footer-card">
                 <span>CARTE D'ÉTUDIANT</span>
-                <span>Valide jusqu'au: ${formatDate(c.expiry_date)}</span>
+                <span>ANNÉE: ${year?.name ?? ''} | EXP: ${formatDate(c.expiry_date)}</span>
               </div>
             </div>
             
             <!-- VERSO (Back) -->
             <div class="id-card back">
-              <div class="back-header" style="margin-bottom: 6px;">
+              <div class="back-header">
                 <img src="/Logo_IBR.jpeg" class="back-logo" />
                 <div class="back-title">
                   INSTITUT BIBLIQUE REHOBOTH
-                  <span class="back-subtitle">BONOUA, CÔTE D'IVOIRE</span>
-                  <span class="back-slogan" style="display: block; font-size: 5px; font-weight: bold; color: #64748b; font-style: italic; margin-top: 1px;">VIVRE CHAQUE JOUR LA PLÉNITUDE DE LA PAROLE DE DIEU</span>
+                  <span class="back-subtitle">${schoolAddress.toUpperCase()}</span>
                 </div>
               </div>
+              
+              <div class="slogan-back">
+                ${schoolSlogan}
+              </div>
+              
               <div class="back-content">
                 <div class="qr-code">
                   <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(checkUrl)}" />
                 </div>
-                <div>
+                <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; height: 66px;">
                   <div class="rules">
                     Cette carte est strictement personnelle et valide la qualité d'étudiant inscrit à l'Institut Rehoboth. Le scan du code QR confirme sa validité.
                   </div>
-                  <div style="border-top: 1px dashed #cbd5e1; padding-top: 4px; margin-top: 6px; width: 180px; box-sizing: border-box; text-align: right;">
-                    <div style="font-size: 8px; color: #1e40af; line-height: 1.2;">
-                      <span style="color: #64748b; font-weight: bold; font-size: 6.5px; text-transform: uppercase;">Le Fondateur</span><br/>
+                  <div class="signature-block">
+                    <div style="font-size: 7.5px; color: #1e3a8a; line-height: 1.1; text-align: right;">
+                      <span style="color: #94a3b8; font-weight: 800; font-size: 6px; text-transform: uppercase; letter-spacing: 0.3px;">Le Fondateur</span><br/>
                       <strong>Apôtre FATO Michel</strong>
                     </div>
                   </div>
@@ -640,12 +859,23 @@ export function RolesPage() {
 export function SettingsPage() {
   const { settings, loading, refresh } = useSettings();
   const { show } = useToast();
-  const [institute, setInstitute] = useState({ name: '', short_name: '', address: '', phone: '', email: '', director: '' });
+  const [institute, setInstitute] = useState({ name: '', short_name: '', address: '', phone: '', email: '', director: '', slogan: '' });
   const [matricule, setMatricule] = useState({ institute_code: 'IBR', separator: '/', digits: 4, start_number: 1, allow_manual: false });
   const [grading, setGrading] = useState({ method: 'weighted', round_decimals: 2, use_coefficients: true, ranking_method: 'standard' });
 
   useEffect(() => {
-    if (settings.institute_info) setInstitute(settings.institute_info.value as any);
+    if (settings.institute_info) {
+      const val = settings.institute_info.value as any;
+      setInstitute({
+        name: val.name || '',
+        short_name: val.short_name || '',
+        address: val.address || '',
+        phone: val.phone || '',
+        email: val.email || '',
+        director: val.director || '',
+        slogan: val.slogan || 'VIVRE CHAQUE JOUR LA PLÉNITUDE DE LA PAROLE DE DIEU'
+      });
+    }
     if (settings.matricule_config) setMatricule(settings.matricule_config.value as any);
     if (settings.grading_config) setGrading(settings.grading_config.value as any);
   }, [settings]);
@@ -682,6 +912,7 @@ export function SettingsPage() {
             <div><label className="label-field">Sigle</label><input className="input-field" value={institute.short_name} onChange={(e) => setInstitute({ ...institute, short_name: e.target.value })} /></div>
             <div><label className="label-field">Adresse</label><input className="input-field" value={institute.address} onChange={(e) => setInstitute({ ...institute, address: e.target.value })} /></div>
             <div><label className="label-field">Téléphone</label><input className="input-field" value={institute.phone} onChange={(e) => setInstitute({ ...institute, phone: e.target.value })} /></div>
+            <div className="sm:col-span-2"><label className="label-field">Slogan de l'institut</label><input className="input-field" value={institute.slogan} onChange={(e) => setInstitute({ ...institute, slogan: e.target.value })} /></div>
             <div className="sm:col-span-2"><label className="label-field">Directeur</label><input className="input-field" value={institute.director} onChange={(e) => setInstitute({ ...institute, director: e.target.value })} /></div>
           </div>
           <button className="btn-primary mt-4" onClick={saveInstitute}>Enregistrer</button>
