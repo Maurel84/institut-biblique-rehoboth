@@ -179,6 +179,7 @@ export function CardsPage() {
                   <div class="name">${fullName(c.student?.last_name, c.student?.first_name)}</div>
                   <div>Matricule: <span class="matricule">${c.student?.matricule ?? '-'}</span></div>
                   <div>Niveau: <strong>${c.level?.name ?? '-'}</strong></div>
+                  <div>Mention: <strong>${c.level?.code === 'B2' ? 'Diplôme' : 'Certificat'}</strong></div>
                   <div>Année Académique: <strong>${year?.name ?? ''}</strong></div>
                 </div>
               </div>
@@ -205,8 +206,15 @@ export function CardsPage() {
                   <div class="rules">
                     Cette carte est strictement personnelle et valide la qualité d'étudiant inscrit à l'Institut Rehoboth. Le scan du code QR confirme sa validité.
                   </div>
-                  <div class="signature">
-                    Le Secrétaire Général
+                  <div style="display: flex; justify-content: space-between; gap: 8px; border-top: 1px dashed #cbd5e1; padding-top: 4px; margin-top: 6px; width: 180px; box-sizing: border-box;">
+                    <div style="text-align: left; font-size: 7px; color: #1e40af; line-height: 1.1;">
+                      <span style="color: #64748b; font-weight: bold; font-size: 6px; text-transform: uppercase;">Le Fondateur</span><br/>
+                      <strong>Apôtre FATO Michel</strong>
+                    </div>
+                    <div style="text-align: right; font-size: 7px; color: #1e40af; line-height: 1.1;">
+                      <span style="color: #64748b; font-weight: bold; font-size: 6px; text-transform: uppercase;">L'Éducatrice</span><br/>
+                      <strong>Mme FATO Rose</strong>
+                    </div>
                   </div>
                 </div>
               </div>
