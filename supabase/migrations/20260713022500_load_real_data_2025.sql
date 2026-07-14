@@ -584,13 +584,14 @@ VALUES
 -- 12. FEE STRUCTURES & FINANCIAL ACCOUNTS (2025)
 -- ============================================================================
 -- Fee categories
-INSERT INTO fee_categories (name, code, description, is_mandatory, order_index) VALUES
-  ('Frais d''inscription', 'INSCRIPTION', 'Frais d''inscription annuelle', true, 1),
-  ('Scolarité', 'SCOLARITE', 'Frais de scolarité annuels', true, 2),
-  ('Frais de carte', 'CARTE', 'Frais de carte d''étudiant', true, 3),
-  ('Frais d''examen', 'EXAMEN', 'Frais d''examen', true, 4),
-  ('Fascicules', 'FASCICULES', 'Frais de fascicules de formation', false, 5),
-  ('Frais de diplôme', 'DIPLOME', 'Frais de diplôme en fin de cycle', false, 6)
+INSERT INTO fee_categories (name, code, description) VALUES
+  ('Scolarité', 'SCOLARITE', 'Frais de scolarité annuels'),
+  ('Inscription', 'INSCRIPTION', 'Frais d''inscription administrative'),
+  ('Graduation / Diplôme', 'GRADUATION', 'Frais de graduation et diplôme'),
+  ('Fascicules de modules', 'MODULES_PACK', 'Achat des 5 fascicules de cours'),
+  ('Immatriculation', 'IMMATRICULATION', 'Frais d''immatriculation de l''élève'),
+  ('Paquet de Rame', 'RAME', 'Frais pour paquet de rame de papier'),
+  ('2 Photos d''identité', 'PHOTOS', 'Frais pour les photos d''identité')
 ON CONFLICT (code) DO NOTHING;
 
 -- Tuition fee structures for 2025
@@ -600,22 +601,31 @@ DECLARE
   p_id uuid := (SELECT id FROM programs WHERE code = 'THEO');
   b1_id uuid := (SELECT id FROM levels WHERE code = 'B1');
   b2_id uuid := (SELECT id FROM levels WHERE code = 'B2');
-  fc_ins uuid := (SELECT id FROM fee_categories WHERE code = 'INSCRIPTION');
-  fc_sco uuid := (SELECT id FROM fee_categories WHERE code = 'SCOLARITE');
-  fc_car uuid := (SELECT id FROM fee_categories WHERE code = 'CARTE');
-  fc_exa uuid := (SELECT id FROM fee_categories WHERE code = 'EXAMEN');
-  fc_dip uuid := (SELECT id FROM fee_categories WHERE code = 'DIPLOME');
+  
+  fc_scol uuid := (SELECT id FROM fee_categories WHERE code = 'SCOLARITE' LIMIT 1);
+  fc_insc uuid := (SELECT id FROM fee_categories WHERE code = 'INSCRIPTION' LIMIT 1);
+  fc_grad uuid := (SELECT id FROM fee_categories WHERE code = 'GRADUATION' LIMIT 1);
+  fc_modu uuid := (SELECT id FROM fee_categories WHERE code = 'MODULES_PACK' LIMIT 1);
+  fc_imma uuid := (SELECT id FROM fee_categories WHERE code = 'IMMATRICULATION' LIMIT 1);
+  fc_rame uuid := (SELECT id FROM fee_categories WHERE code = 'RAME' LIMIT 1);
+  fc_phot uuid := (SELECT id FROM fee_categories WHERE code = 'PHOTOS' LIMIT 1);
 BEGIN
   INSERT INTO tuition_fee_structures (academic_year_id, program_id, level_id, fee_category_id, amount, number_of_installments) VALUES
-    (ay_id, p_id, b1_id, fc_ins, 25000, 1),
-    (ay_id, p_id, b1_id, fc_sco, 150000, 3),
-    (ay_id, p_id, b1_id, fc_car, 2000, 1),
-    (ay_id, p_id, b1_id, fc_exa, 10000, 1),
-    (ay_id, p_id, b2_id, fc_ins, 25000, 1),
-    (ay_id, p_id, b2_id, fc_sco, 170000, 3),
-    (ay_id, p_id, b2_id, fc_car, 2000, 1),
-    (ay_id, p_id, b2_id, fc_exa, 10000, 1),
-    (ay_id, p_id, b2_id, fc_dip, 30000, 1);
+    (ay_id, p_id, b1_id, fc_scol, 40000, 3),
+    (ay_id, p_id, b1_id, fc_insc, 10000, 1),
+    (ay_id, p_id, b1_id, fc_grad, 25000, 1),
+    (ay_id, p_id, b1_id, fc_modu, 25000, 1),
+    (ay_id, p_id, b1_id, fc_imma, 3000, 1),
+    (ay_id, p_id, b1_id, fc_rame, 3000, 1),
+    (ay_id, p_id, b1_id, fc_phot, 1000, 1),
+    
+    (ay_id, p_id, b2_id, fc_scol, 50000, 3),
+    (ay_id, p_id, b2_id, fc_insc, 10000, 1),
+    (ay_id, p_id, b2_id, fc_grad, 35000, 1),
+    (ay_id, p_id, b2_id, fc_modu, 30000, 1),
+    (ay_id, p_id, b2_id, fc_imma, 3000, 1),
+    (ay_id, p_id, b2_id, fc_rame, 3000, 1),
+    (ay_id, p_id, b2_id, fc_phot, 1000, 1);
 END $$;
 
 -- Initialize Accounts
