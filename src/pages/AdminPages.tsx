@@ -143,7 +143,7 @@ export function CardsPage() {
           <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
           <style>
             @media print {
-              body { margin: 0; padding: 0; background: white; }
+              body { margin: 0; padding: 0; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
               .no-print { display: none; }
             }
             body { font-family: 'Outfit', sans-serif; display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 20px; }
@@ -247,13 +247,10 @@ export function CardsPage() {
             .details .name { 
               font-weight: 800; 
               font-size: 11.5px; 
-              color: #0f172a; 
+              color: #1e3a8a; 
               text-transform: uppercase;
               line-height: 1.2;
               margin-bottom: 2px;
-              background: linear-gradient(135deg, #0f172a, #1e3a8a);
-              -webkit-background-clip: text;
-              -webkit-text-fill-color: transparent;
             }
             .details .matricule { 
               font-family: monospace; 
