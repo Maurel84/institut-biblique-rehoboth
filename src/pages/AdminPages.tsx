@@ -92,11 +92,15 @@ export function CardsPage() {
       const cardNumber = `IBR-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
       const checkUrl = `${window.location.origin}/check-card/${student.id}`;
 
+      const yearMatch = year.name.match(/\d{4}/);
+      const expYear = yearMatch ? yearMatch[0] : new Date().getFullYear().toString();
+      const expiryDate = `${expYear}-12-31`;
+
       const { error } = await supabase.from('student_cards').insert({
         card_number: cardNumber, student_id: form.student_id, academic_year_id: year.id,
         level_id: student.current_level_id ?? null,
         qr_code_data: checkUrl, issue_date: new Date().toISOString().split('T')[0],
-        expiry_date: year.end_date, status: 'generated',
+        expiry_date: expiryDate, status: 'generated',
       });
 
       if (error) throw new Error(error.message);
