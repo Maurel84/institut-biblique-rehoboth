@@ -8,7 +8,7 @@ import type { AcademicYear, Teacher, Module, Subject, Enrollment, Student, Progr
 import {
   Plus, Calendar, School, Layers, GraduationCap, BookOpen, BookMarked,
   FileText, Users, Edit, Trash2, Eye, ChevronRight, ChevronLeft, Check, CheckCircle2,
-  DollarSign, Package, UserCheck, AlertTriangle
+  DollarSign, Package, UserCheck, AlertTriangle, ChevronDown, ChevronUp
 } from 'lucide-react';
 
 // ============================================================================
@@ -618,7 +618,7 @@ export function TeachersPage() {
 }
 
 // ============================================================================
-// MODULES PAGE
+// MODULES PAGE (Accordions with Subjects list)
 // ============================================================================
 export function ModulesPage() {
   const { year } = useCurrentAcademicYear();
@@ -626,24 +626,67 @@ export function ModulesPage() {
   const [modules, setModules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [levelFilter, setLevelFilter] = useState('');
+  
+  // Modals for module management
   const [showModal, setShowModal] = useState(false);
   const [editingModule, setEditingModule] = useState<any>(null);
   const [deletingModule, setDeletingModule] = useState<any>(null);
   const [form, setForm] = useState({ name: '', code: '', order_index: 1, color: '#1e40af', level_id: '' });
+
+  // Accordion state
+  const [expandedModuleId, setExpandedModuleId] = useState<string | null>(null);
+
+  // Modals for subject management
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [showSubjectModal, setShowSubjectModal] = useState(false);
+  const [editingSubject, setEditingSubject] = useState<any>(null);
+  const [deletingSubject, setDeletingSubject] = useState<any>(null);
+  const [subjectForm, setSubjectForm] = useState({
+    code: '',
+    name: '',
+    module_id: '',
+    level_id: '',
+    teacher_id: '',
+    coefficient: '1',
+    passing_threshold: '10',
+    order_index: '1'
+  });
+
   const { show } = useToast();
 
+  // Load modules + subjects
   const load = useCallback(async () => {
     if (!year) return;
     setLoading(true);
-    let query = supabase.from('modules').select('*, level:levels(*)').eq('academic_year_id', year.id).order('order_index');
-    if (levelFilter) query = query.eq('level_id', levelFilter);
-    const { data } = await query;
-    setModules(data ?? []);
+
+    // Fetch modules
+    let modulesQuery = supabase.from('modules').select('*, level:levels(*)').eq('academic_year_id', year.id).order('order_index');
+    if (levelFilter) modulesQuery = modulesQuery.eq('level_id', levelFilter);
+    const { data: modulesData } = await modulesQuery;
+
+    // Fetch subjects
+    let subjectsQuery = supabase.from('subjects').select('*, teacher:teachers(*), level:levels(*)').eq('academic_year_id', year.id).order('order_index');
+    if (levelFilter) subjectsQuery = subjectsQuery.eq('level_id', levelFilter);
+    const { data: subjectsData } = await subjectsQuery;
+
+    // Map subjects to their modules
+    const mapped = (modulesData ?? []).map((m: any) => ({
+      ...m,
+      subjects: (subjectsData ?? []).filter((s: any) => s.module_id === m.id)
+    }));
+
+    setModules(mapped);
     setLoading(false);
   }, [year, levelFilter]);
 
   useEffect(() => { load(); }, [load]);
 
+  // Load teachers for select fields
+  useEffect(() => {
+    supabase.from('teachers').select('*').is('deleted_at', null).order('last_name').then(({ data }) => setTeachers((data as Teacher[]) ?? []));
+  }, []);
+
+  // Save Module
   async function handleSave() {
     if (!form.name || !form.code || !form.level_id || !year) { show('Tous les champs sont obligatoires', 'error'); return; }
 
@@ -673,6 +716,7 @@ export function ModulesPage() {
     }
   }
 
+  // Delete Module
   async function handleDelete() {
     if (!deletingModule) return;
     const { error } = await supabase.from('modules').delete().eq('id', deletingModule.id);
@@ -684,57 +728,301 @@ export function ModulesPage() {
     setDeletingModule(null);
   }
 
+  // Save Subject (Matière)
+  async function handleSaveSubject() {
+    if (!subjectForm.code || !subjectForm.name || !subjectForm.level_id || !subjectForm.module_id || !year) {
+      show('Champs obligatoires manquants', 'error');
+      return;
+    }
+
+    const saveData = {
+      code: subjectForm.code,
+      name: subjectForm.name,
+      module_id: subjectForm.module_id,
+      level_id: subjectForm.level_id,
+      academic_year_id: year.id,
+      teacher_id: subjectForm.teacher_id || null,
+      coefficient: parseFloat(subjectForm.coefficient) || 1,
+      passing_threshold: parseFloat(subjectForm.passing_threshold) || 10,
+      max_score: 20,
+      min_score: 0,
+      order_index: parseInt(subjectForm.order_index) || 1,
+      is_active: true,
+    };
+
+    if (editingSubject) {
+      const { error } = await supabase.from('subjects').update(saveData).eq('id', editingSubject.id);
+      if (error) show(error.message, 'error');
+      else {
+        show('Matière mise à jour', 'success');
+        setShowSubjectModal(false);
+        setEditingSubject(null);
+        load();
+      }
+    } else {
+      const { error } = await supabase.from('subjects').insert(saveData);
+      if (error) show(error.message, 'error');
+      else {
+        show('Matière créée', 'success');
+        setShowSubjectModal(false);
+        setSubjectForm({ code: '', name: '', module_id: '', level_id: '', teacher_id: '', coefficient: '1', passing_threshold: '10', order_index: '1' });
+        load();
+      }
+    }
+  }
+
+  // Delete Subject
+  async function handleDeleteSubject() {
+    if (!deletingSubject) return;
+    const { error } = await supabase.from('subjects').delete().eq('id', deletingSubject.id);
+    if (error) show("Impossible de supprimer cette matière car elle possède des notes associées.", 'error');
+    else {
+      show('Matière supprimée', 'success');
+      load();
+    }
+    setDeletingSubject(null);
+  }
+
   if (loading) return <LoadingSpinner />;
 
   return (
-    <div className="animate-slide-in">
+    <div className="animate-slide-in space-y-6">
       <PageHeader
-        title="Modules"
-        subtitle={`${modules.length} module(s) - ${year?.name ?? ''}`}
+        title="Modules & Matières"
+        subtitle={`${modules.length} module(s) enregistré(s) - ${year?.name ?? ''}`}
         actions={
-          <button className="btn-primary flex items-center gap-2" onClick={() => {
+          <button className="btn-primary flex items-center gap-2 font-semibold" onClick={() => {
             setEditingModule(null);
-            setForm({ name: '', code: '', order_index: 1, color: '#1e40af', level_id: '' });
+            setForm({ name: '', code: '', order_index: modules.length + 1, color: '#1e40af', level_id: levelFilter || '' });
             setShowModal(true);
           }}>
-            <Plus className="w-4 h-4" /> Nouveau module
+            <Plus className="w-4.5 h-4.5" /> Nouveau module
           </button>
         }
       />
-      <div className="mb-4">
-        <Select value={levelFilter} onChange={setLevelFilter} placeholder="Tous les niveaux" options={levels.map((l) => ({ value: l.id, label: l.name }))} className="max-w-xs" />
+
+      <div className="flex flex-wrap gap-4 items-center justify-between bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+        <div className="flex items-center gap-3">
+          <Layers className="w-5 h-5 text-ibr-500" />
+          <span className="font-semibold text-gray-700">Filtrer par niveau :</span>
+          <Select
+            value={levelFilter}
+            onChange={(val) => {
+              setLevelFilter(val);
+              setExpandedModuleId(null);
+            }}
+            placeholder="Tous les niveaux"
+            options={levels.map((l) => ({ value: l.id, label: l.name }))}
+            className="w-56"
+          />
+        </div>
+        <div className="text-xs text-gray-500">
+          Astuce : Cliquez sur un module pour déplier et gérer ses matières.
+        </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {modules.map((m) => (
-          <Card key={m.id} className="p-5 flex flex-col justify-between h-40 relative">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold shadow-sm" style={{ backgroundColor: m.color }}>
-                {m.order_index}
+
+      <div className="space-y-4">
+        {modules.length === 0 ? (
+          <EmptyState title="Aucun module trouvé" description="Commencez par ajouter des modules pour cette année académique." />
+        ) : (
+          modules.map((m) => {
+            const isExpanded = expandedModuleId === m.id;
+            return (
+              <div
+                key={m.id}
+                className={`bg-white rounded-xl border transition-all duration-300 overflow-hidden shadow-sm hover:shadow-md ${
+                  isExpanded ? 'ring-1 ring-ibr-500 border-transparent' : 'border-gray-150'
+                }`}
+              >
+                {/* Module Header Card / Accordion Trigger */}
+                <div
+                  className="p-5 flex items-center justify-between cursor-pointer select-none"
+                  onClick={() => setExpandedModuleId(isExpanded ? null : m.id)}
+                >
+                  <div className="flex items-center gap-4 flex-1">
+                    <div
+                      className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold shadow-sm shrink-0 animate-fade-in"
+                      style={{ backgroundColor: m.color }}
+                    >
+                      {m.order_index}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
+                        {m.name}
+                        <Badge className="text-xs font-mono font-bold bg-gray-100 text-gray-600">
+                          {m.code}
+                        </Badge>
+                      </h3>
+                      <p className="text-xs text-gray-500 font-medium mt-1 flex items-center gap-1.5">
+                        <GraduationCap className="w-3.5 h-3.5 text-gray-400" />
+                        Niveau: <span className="font-semibold text-gray-700">{m.level?.name ?? '-'}</span>
+                        <span className="mx-1.5 text-gray-300">•</span>
+                        <BookOpen className="w-3.5 h-3.5 text-gray-400" />
+                        <span className="font-semibold text-ibr-600">{m.subjects.length} matière(s)</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      className="p-2 text-gray-400 hover:text-ibr-600 hover:bg-gray-50 rounded-lg transition-colors"
+                      onClick={() => {
+                        setEditingModule(m);
+                        setForm({ name: m.name, code: m.code, order_index: m.order_index, color: m.color, level_id: m.level_id });
+                        setShowModal(true);
+                      }}
+                      title="Modifier le module"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      onClick={() => setDeletingModule(m)}
+                      title="Supprimer le module"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                    <div className="w-px h-5 bg-gray-200 mx-1" />
+                    <button
+                      onClick={() => setExpandedModuleId(isExpanded ? null : m.id)}
+                      className={`p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition-transform ${
+                        isExpanded ? 'rotate-180 text-ibr-600' : ''
+                      }`}
+                    >
+                      <ChevronDown className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Expanded Subjects Section */}
+                {isExpanded && (
+                  <div className="border-t border-gray-100 bg-gray-50/50 p-6 animate-slide-in">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-bold text-gray-800 text-sm uppercase tracking-wider flex items-center gap-2">
+                        <BookMarked className="w-4 h-4 text-ibr-600" />
+                        Matières du module
+                      </h4>
+                      <button
+                        className="btn-secondary py-1.5 px-3 text-xs flex items-center gap-1.5 font-bold border border-ibr-200 text-ibr-700 hover:bg-ibr-50"
+                        onClick={() => {
+                          setEditingSubject(null);
+                          setSubjectForm({
+                            code: '',
+                            name: '',
+                            module_id: m.id,
+                            level_id: m.level_id,
+                            teacher_id: '',
+                            coefficient: '1',
+                            passing_threshold: '10',
+                            order_index: (m.subjects.length + 1).toString()
+                          });
+                          setShowSubjectModal(true);
+                        }}
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Ajouter une matière
+                      </button>
+                    </div>
+
+                    {m.subjects.length === 0 ? (
+                      <div className="text-center py-6 bg-white rounded-lg border border-dashed border-gray-200">
+                        <p className="text-sm text-gray-500">Aucune matière n'est définie pour ce module.</p>
+                        <button
+                          className="mt-2 text-xs text-ibr-600 font-bold hover:underline"
+                          onClick={() => {
+                            setEditingSubject(null);
+                            setSubjectForm({
+                              code: '',
+                              name: '',
+                              module_id: m.id,
+                              level_id: m.level_id,
+                              teacher_id: '',
+                              coefficient: '1',
+                              passing_threshold: '10',
+                              order_index: '1'
+                            });
+                            setShowSubjectModal(true);
+                          }}
+                        >
+                          Ajouter la première matière
+                        </button>
+                      </div>
+                    ) : (
+                      <Card className="overflow-hidden bg-white border border-gray-205 p-0">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm text-gray-800">
+                            <thead className="bg-gray-50 border-b border-gray-150">
+                              <tr>
+                                <th className="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase">Code</th>
+                                <th className="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase">Intitulé de la matière</th>
+                                <th className="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase">Enseignant</th>
+                                <th className="text-center px-5 py-3 font-semibold text-gray-600 text-xs uppercase">Coef.</th>
+                                <th className="text-center px-5 py-3 font-semibold text-gray-600 text-xs uppercase">Seuil admis.</th>
+                                <th className="text-center px-5 py-3 font-semibold text-gray-600 text-xs uppercase">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {m.subjects.map((s: any) => (
+                                <tr key={s.id} className="hover:bg-gray-50/50 transition-colors">
+                                  <td className="px-5 py-3 font-bold text-ibr-600 font-mono text-xs">{s.code}</td>
+                                  <td className="px-5 py-3 font-medium text-gray-900">{s.name}</td>
+                                  <td className="px-5 py-3 text-gray-600">
+                                    {s.teacher ? fullName(s.teacher.last_name, s.teacher.first_name) : (
+                                      <span className="text-gray-400 italic">Non assigné</span>
+                                    )}
+                                  </td>
+                                  <td className="px-5 py-3 text-center font-bold text-gray-900">{s.coefficient}</td>
+                                  <td className="px-5 py-3 text-center text-gray-500 font-medium">{s.passing_threshold}/20</td>
+                                  <td className="px-5 py-3 text-center">
+                                    <div className="flex items-center justify-center gap-1.5">
+                                      <button
+                                        className="text-gray-400 hover:text-ibr-600 p-1 hover:bg-gray-100 rounded"
+                                        onClick={() => {
+                                          setEditingSubject(s);
+                                          setSubjectForm({
+                                            code: s.code,
+                                            name: s.name,
+                                            module_id: s.module_id,
+                                            level_id: s.level_id,
+                                            teacher_id: s.teacher_id ?? '',
+                                            coefficient: s.coefficient.toString(),
+                                            passing_threshold: s.passing_threshold.toString(),
+                                            order_index: s.order_index.toString()
+                                          });
+                                          setShowSubjectModal(true);
+                                        }}
+                                        title="Modifier la matière"
+                                      >
+                                        <Edit className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button
+                                        className="text-gray-400 hover:text-red-600 p-1 hover:bg-red-50 rounded"
+                                        onClick={() => setDeletingSubject(s)}
+                                        title="Supprimer la matière"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </Card>
+                    )}
+                  </div>
+                )}
               </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 line-clamp-1">{m.name}</h3>
-                <p className="text-xs text-gray-500 font-mono mt-0.5">{m.code} - {m.level?.name}</p>
-              </div>
-            </div>
-            <div className="flex gap-2 justify-end pt-3 border-t border-gray-50 mt-4">
-              <button className="text-gray-400 hover:text-ibr-700 p-1" onClick={() => {
-                setEditingModule(m);
-                setForm({ name: m.name, code: m.code, order_index: m.order_index, color: m.color, level_id: m.level_id });
-                setShowModal(true);
-              }}>
-                <Edit className="w-4 h-4" />
-              </button>
-              <button className="text-gray-400 hover:text-red-600 p-1" onClick={() => setDeletingModule(m)}>
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          </Card>
-        ))}
+            );
+          })
+        )}
       </div>
+
+      {/* Module Create/Edit Modal */}
       <Modal open={showModal} onClose={() => setShowModal(false)} title={editingModule ? "Modifier le module" : "Nouveau module"}>
         <div className="space-y-4">
-          <div><label className="label-field">Nom *</label><input className="input-field" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Module 1" /></div>
-          <div><label className="label-field">Code *</label><input className="input-field" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="M1-B1" /></div>
+          <div><label className="label-field">Nom *</label><input className="input-field" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ex: Théologie Systématique" /></div>
+          <div><label className="label-field">Code *</label><input className="input-field" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="Ex: TS-1" /></div>
           <div><label className="label-field">Niveau *</label>
             <select className="input-field" value={form.level_id} onChange={(e) => setForm({ ...form, level_id: e.target.value })}>
               <option value="">--</option>
@@ -752,12 +1040,75 @@ export function ModulesPage() {
         </div>
       </Modal>
 
+      {/* Subject Create/Edit Modal */}
+      <Modal open={showSubjectModal} onClose={() => setShowSubjectModal(false)} title={editingSubject ? "Modifier la matière" : "Nouvelle matière"}>
+        <div className="space-y-4">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-1"><label className="label-field">Code *</label><input className="input-field font-mono font-bold" value={subjectForm.code} onChange={(e) => setSubjectForm({ ...subjectForm, code: e.target.value })} placeholder="Ex: MAT-1" /></div>
+            <div className="col-span-2"><label className="label-field">Intitulé *</label><input className="input-field" value={subjectForm.name} onChange={(e) => setSubjectForm({ ...subjectForm, name: e.target.value })} placeholder="Ex: Introduction à l'Ancien Testament" /></div>
+          </div>
+
+          <div><label className="label-field">Niveau *</label>
+            <select
+              className="input-field"
+              value={subjectForm.level_id}
+              onChange={(e) => setSubjectForm({ ...subjectForm, level_id: e.target.value, module_id: '' })}
+            >
+              <option value="">--</option>
+              {levels.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </select>
+          </div>
+
+          <div><label className="label-field">Module *</label>
+            <select
+              className="input-field"
+              value={subjectForm.module_id}
+              onChange={(e) => setSubjectForm({ ...subjectForm, module_id: e.target.value })}
+              disabled={!subjectForm.level_id}
+            >
+              <option value="">--</option>
+              {modules.filter(m => m.level_id === subjectForm.level_id).map((m) => (
+                <option key={m.id} value={m.id}>{m.name} ({m.code})</option>
+              ))}
+            </select>
+          </div>
+
+          <div><label className="label-field">Enseignant</label>
+            <select className="input-field" value={subjectForm.teacher_id} onChange={(e) => setSubjectForm({ ...subjectForm, teacher_id: e.target.value })}>
+              <option value="">-- Non assigné --</option>
+              {teachers.map((t) => <option key={t.id} value={t.id}>{fullName(t.last_name, t.first_name)}</option>)}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div><label className="label-field">Coefficient</label><input type="number" step="0.5" className="input-field" value={subjectForm.coefficient} onChange={(e) => setSubjectForm({ ...subjectForm, coefficient: e.target.value })} /></div>
+            <div><label className="label-field">Seuil admis.</label><input type="number" step="0.5" className="input-field" value={subjectForm.passing_threshold} onChange={(e) => setSubjectForm({ ...subjectForm, passing_threshold: e.target.value })} /></div>
+            <div><label className="label-field">Ordre d'aff.</label><input type="number" className="input-field" value={subjectForm.order_index} onChange={(e) => setSubjectForm({ ...subjectForm, order_index: e.target.value })} /></div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button className="btn-secondary" onClick={() => setShowSubjectModal(false)}>Annuler</button>
+            <button className="btn-primary" onClick={handleSaveSubject}>{editingSubject ? "Enregistrer" : "Créer"}</button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Module Dialog */}
       <ConfirmDialog
         open={!!deletingModule}
         onClose={() => setDeletingModule(null)}
         onConfirm={handleDelete}
         title="Supprimer le module"
         message={`Voulez-vous vraiment supprimer le module ${deletingModule?.name} ?`}
+      />
+
+      {/* Delete Subject Dialog */}
+      <ConfirmDialog
+        open={!!deletingSubject}
+        onClose={() => setDeletingSubject(null)}
+        onConfirm={handleDeleteSubject}
+        title="Supprimer la matière"
+        message={`Voulez-vous vraiment supprimer la matière ${deletingSubject?.name} ? Cette action est irréversible.`}
       />
     </div>
   );
