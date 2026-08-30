@@ -648,7 +648,7 @@ export function ModulesPage() {
     level_id: '',
     teacher_id: '',
     coefficient: '1',
-    passing_threshold: '10',
+    passing_threshold: '50',
     order_index: '1'
   });
 
@@ -743,8 +743,8 @@ export function ModulesPage() {
       academic_year_id: year.id,
       teacher_id: subjectForm.teacher_id || null,
       coefficient: parseFloat(subjectForm.coefficient) || 1,
-      passing_threshold: parseFloat(subjectForm.passing_threshold) || 10,
-      max_score: 20,
+      passing_threshold: parseFloat(subjectForm.passing_threshold) || 50,
+      max_score: 100,
       min_score: 0,
       order_index: parseInt(subjectForm.order_index) || 1,
       is_active: true,
@@ -765,7 +765,7 @@ export function ModulesPage() {
       else {
         show('Matière créée', 'success');
         setShowSubjectModal(false);
-        setSubjectForm({ code: '', name: '', module_id: '', level_id: '', teacher_id: '', coefficient: '1', passing_threshold: '10', order_index: '1' });
+        setSubjectForm({ code: '', name: '', module_id: '', level_id: '', teacher_id: '', coefficient: '1', passing_threshold: '50', order_index: '1' });
         load();
       }
     }
@@ -911,9 +911,8 @@ export function ModulesPage() {
                             name: '',
                             module_id: m.id,
                             level_id: m.level_id,
-                            teacher_id: '',
                             coefficient: '1',
-                            passing_threshold: '10',
+                            passing_threshold: '50',
                             order_index: (m.subjects.length + 1).toString()
                           });
                           setShowSubjectModal(true);
@@ -935,9 +934,8 @@ export function ModulesPage() {
                               name: '',
                               module_id: m.id,
                               level_id: m.level_id,
-                              teacher_id: '',
                               coefficient: '1',
-                              passing_threshold: '10',
+                              passing_threshold: '50',
                               order_index: '1'
                             });
                             setShowSubjectModal(true);
@@ -971,7 +969,7 @@ export function ModulesPage() {
                                     )}
                                   </td>
                                   <td className="px-5 py-3 text-center font-bold text-gray-900">{s.coefficient}</td>
-                                  <td className="px-5 py-3 text-center text-gray-500 font-medium">{s.passing_threshold}/20</td>
+                                  <td className="px-5 py-3 text-center text-gray-500 font-medium">{s.passing_threshold}/100</td>
                                   <td className="px-5 py-3 text-center">
                                     <div className="flex items-center justify-center gap-1.5">
                                       <button
@@ -1128,7 +1126,7 @@ export function SubjectsPage() {
   const [deletingSubject, setDeletingSubject] = useState<any>(null);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [modules, setModules] = useState<any[]>([]);
-  const [form, setForm] = useState({ code: '', name: '', module_id: '', level_id: '', teacher_id: '', coefficient: '1', passing_threshold: '10', order_index: '1' });
+  const [form, setForm] = useState({ code: '', name: '', module_id: '', level_id: '', teacher_id: '', coefficient: '1', passing_threshold: '50', order_index: '1' });
   const { show } = useToast();
 
   const load = useCallback(async () => {
@@ -1159,8 +1157,8 @@ export function SubjectsPage() {
     const saveData = {
       code: form.code, name: form.name, module_id: form.module_id, level_id: form.level_id,
       academic_year_id: year.id, teacher_id: form.teacher_id || null,
-      coefficient: parseFloat(form.coefficient) || 1, passing_threshold: parseFloat(form.passing_threshold) || 10,
-      max_score: 20, min_score: 0, order_index: parseInt(form.order_index) || 1, is_active: true,
+      coefficient: parseFloat(form.coefficient) || 1, passing_threshold: parseFloat(form.passing_threshold) || 50,
+      max_score: 100, min_score: 0, order_index: parseInt(form.order_index) || 1, is_active: true,
     };
 
     if (editingSubject) {
@@ -1178,7 +1176,7 @@ export function SubjectsPage() {
       else {
         show('Matière créée', 'success');
         setShowModal(false);
-        setForm({ code: '', name: '', module_id: '', level_id: '', teacher_id: '', coefficient: '1', passing_threshold: '10', order_index: '1' });
+        setForm({ code: '', name: '', module_id: '', level_id: '', teacher_id: '', coefficient: '1', passing_threshold: '50', order_index: '1' });
         load();
       }
     }
@@ -1205,7 +1203,7 @@ export function SubjectsPage() {
         actions={
           <button className="btn-primary flex items-center gap-2" onClick={() => {
             setEditingSubject(null);
-            setForm({ code: '', name: '', module_id: '', level_id: '', teacher_id: '', coefficient: '1', passing_threshold: '10', order_index: '1' });
+            setForm({ code: '', name: '', module_id: '', level_id: '', teacher_id: '', coefficient: '1', passing_threshold: '50', order_index: '1' });
             setShowModal(true);
           }}>
             <Plus className="w-4 h-4" /> Nouvelle matière

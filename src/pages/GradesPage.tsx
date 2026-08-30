@@ -130,8 +130,8 @@ export function GradesPage() {
     const score = scoreStr === '' ? null : parseFloat(scoreStr);
 
     if (score !== null) {
-      if (score < 0 || score > 100) {
-        show('La note doit être entre 0 et 100', 'error');
+      if (score < 0 || score > 120) {
+        show('La note doit être entre 0 et 120 (bonus inclus)', 'error');
         return;
       }
     }
