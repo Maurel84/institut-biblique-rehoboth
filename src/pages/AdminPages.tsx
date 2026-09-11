@@ -117,6 +117,9 @@ export function CardsPage() {
     }
   }
 
+  const [printModalCard, setPrintModalCard] = useState<any | null>(null);
+  const [printOrientation, setPrintOrientation] = useState<'vertical' | 'horizontal'>('vertical');
+
   async function updateCardStatus(cardId: string, status: string) {
     const updates: any = { status };
     if (status === 'printed') updates.printed_at = new Date().toISOString();
@@ -126,13 +129,15 @@ export function CardsPage() {
     show('Statut de la carte mis à jour', 'success');
   }
 
-  // Impression de la carte Recto-Verso
-  function printStudentCard(c: any) {
+  // Impression de la carte Recto-Verso (Vertical ou Horizontal)
+  function printStudentCard(c: any, orientation: 'vertical' | 'horizontal' = 'vertical') {
     const checkUrl = c.qr_code_data || `${window.location.origin}/check-card/${c.student?.id}`;
     const infoValue = settings.institute_info?.value as any;
     const schoolPhone = infoValue?.phone || '+225 07000000';
     const schoolAddress = infoValue?.address || 'Bonoua, Côte d\'Ivoire';
     const schoolSlogan = infoValue?.slogan || 'VIVRE CHAQUE JOUR LA PLÉNITUDE DE LA PAROLE DE DIEU';
+
+    const isVertical = orientation === 'vertical';
 
     const html = `
       <html>
@@ -142,14 +147,234 @@ export function CardsPage() {
           <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
           <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
           <style>
+            @page {
+              size: ${isVertical ? 'portrait' : 'landscape'};
+              margin: 10mm;
+            }
             @media print {
               body { margin: 0; padding: 0; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-              .no-print { display: none; }
+              .no-print { display: none !important; }
             }
-            body { font-family: 'Outfit', sans-serif; display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 20px; }
-            .card-container { display: flex; gap: 40px; }
+            body { font-family: 'Outfit', sans-serif; display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 20px; background: #f8fafc; }
+            .card-container { display: flex; ${isVertical ? 'flex-direction: column; align-items: center;' : 'flex-direction: row;'} gap: 30px; }
+
+            /* Modern Student Badge Styling */
+            ${isVertical ? `
+            .id-card { 
+              width: 220px; 
+              height: 345px; 
+              border: 1px solid rgba(30, 58, 138, 0.18); 
+              border-radius: 16px; 
+              position: relative; 
+              overflow: hidden; 
+              box-sizing: border-box; 
+              background: linear-gradient(155deg, #ffffff 0%, #f8fafc 100%); 
+              box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+              display: flex;
+              flex-direction: column;
+            }
+            .header { 
+              background: linear-gradient(135deg, #1e3a8a, #2563eb); 
+              color: white; 
+              padding: 12px 10px 10px 10px; 
+              position: relative;
+              text-align: center;
+            }
+            .header::after {
+              content: '';
+              position: absolute;
+              bottom: 0;
+              left: 0;
+              width: 100%;
+              height: 3px;
+              background: linear-gradient(90deg, #facc15, #eab308);
+            }
+            .logo { 
+              font-weight: 800; 
+              font-size: 11px; 
+              letter-spacing: 0.5px;
+              text-transform: uppercase;
+              line-height: 1.15;
+            }
+            .tagline { 
+              font-size: 6.5px; 
+              opacity: 0.9; 
+              margin-top: 2px;
+            }
+            .slogan-tag {
+              font-size: 5.5px; 
+              font-weight: 800; 
+              color: #facc15; 
+              font-style: italic; 
+              margin-top: 3px; 
+              letter-spacing: 0.2px;
+              text-transform: uppercase;
+            }
+            .content-vertical { 
+              display: flex; 
+              flex-direction: column;
+              align-items: center;
+              padding: 12px 10px; 
+              gap: 6px; 
+              flex: 1;
+              box-sizing: border-box;
+            }
+            .photo-box-v { 
+              width: 84px; 
+              height: 106px; 
+              border: 2px solid #1e3a8a; 
+              background: #f1f5f9; 
+              border-radius: 10px; 
+              display: flex; 
+              align-items: center; 
+              justify-content: center; 
+              font-size: 22px; 
+              color: #1e3a8a; 
+              font-weight: bold; 
+              overflow: hidden; 
+              box-shadow: 0 4px 12px rgba(30, 58, 138, 0.12);
+              margin-bottom: 2px;
+            }
+            .photo-box-v img { 
+              width: 100%; 
+              height: 100%; 
+              object-fit: cover; 
+            }
+            .details-v { 
+              font-size: 9px; 
+              color: #475569; 
+              display: flex; 
+              flex-direction: column; 
+              align-items: center;
+              text-align: center;
+              gap: 2px; 
+              width: 100%;
+            }
+            .details-v .name { 
+              font-weight: 800; 
+              font-size: 11px; 
+              color: #1e3a8a; 
+              text-transform: uppercase;
+              line-height: 1.15;
+              margin-bottom: 1px;
+            }
+            .details-v .matricule { 
+              font-family: monospace; 
+              font-weight: 800; 
+              color: #2563eb; 
+              font-size: 9.5px;
+              background: #eff6ff;
+              border: 1px solid #bfdbfe;
+              padding: 1px 6px;
+              border-radius: 4px;
+              margin-bottom: 2px;
+            }
+            .details-v .label {
+              font-size: 6px;
+              text-transform: uppercase;
+              color: #94a3b8;
+              font-weight: 800;
+              margin-top: 1px;
+              letter-spacing: 0.3px;
+            }
+            .details-v .value {
+              font-weight: 700;
+              color: #1e293b;
+              font-size: 8.5px;
+            }
+            .footer-card { 
+              background: linear-gradient(180deg, #f8fafc, #f1f5f9); 
+              border-top: 1px solid #e2e8f0; 
+              width: 100%; 
+              padding: 6px 10px; 
+              font-size: 7px; 
+              color: #64748b; 
+              font-weight: 800; 
+              display: flex; 
+              justify-content: space-between; 
+              box-sizing: border-box; 
+              letter-spacing: 0.3px;
+              margin-top: auto;
+            }
             
-            /* Ultra Modern Student Card Styling */
+            /* Verso Vertical */
+            .id-card.back-v { 
+              display: flex; 
+              flex-direction: column; 
+              align-items: center; 
+              justify-content: space-between; 
+              padding: 12px 10px; 
+              background: radial-gradient(circle at 50% 0%, #ffffff 0%, #f8fafc 100%); 
+              box-sizing: border-box;
+            }
+            .back-header-v { 
+              display: flex; 
+              flex-direction: column;
+              align-items: center; 
+              gap: 4px; 
+              width: 100%;
+              border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+              padding-bottom: 6px;
+              text-align: center;
+            }
+            .back-logo-v { 
+              width: 32px; 
+              height: 32px; 
+              border-radius: 6px; 
+              object-fit: contain; 
+              box-shadow: 0 2px 6px rgba(0,0,0,0.06); 
+              background: white; 
+            }
+            .back-title-v { 
+              font-weight: 800; 
+              font-size: 9.5px; 
+              color: #1e3a8a; 
+              line-height: 1.15; 
+              letter-spacing: 0.3px; 
+            }
+            .back-subtitle-v { 
+              font-size: 6.5px; 
+              color: #64748b; 
+              font-weight: 700; 
+              display: block; 
+            }
+            .qr-code-v { 
+              width: 80px; 
+              height: 80px; 
+              border: 1.5px solid rgba(30, 58, 138, 0.15); 
+              display: flex; 
+              align-items: center; 
+              justify-content: center; 
+              background: #fff; 
+              padding: 3px; 
+              border-radius: 8px; 
+              box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+              margin: 6px 0;
+            }
+            .qr-code-v img { 
+              width: 100%; 
+              height: 100%; 
+            }
+            .rules-v { 
+              font-size: 6.5px; 
+              color: #475569; 
+              text-align: center; 
+              line-height: 1.35; 
+              font-weight: 500;
+              padding: 0 4px;
+            }
+            .signature-block-v { 
+              border-top: 1px dashed #cbd5e1; 
+              padding-top: 4px; 
+              margin-top: 4px; 
+              width: 100%; 
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              text-align: center;
+            }
+            ` : `
+            /* Horizontal Card CSS */
             .id-card { 
               width: 325px; 
               height: 204px; 
@@ -274,7 +499,7 @@ export function CardsPage() {
               letter-spacing: 0.5px;
             }
             
-            /* Card Back (Verso) */
+            /* Card Back (Verso Horizontal) */
             .id-card.back { 
               display: flex; 
               flex-direction: column; 
@@ -369,13 +594,69 @@ export function CardsPage() {
               border-bottom: 1px solid #f1f5f9;
               padding: 3px 0;
             }
+            `}
           </style>
         </head>
         <body>
-          <button class="no-print" onclick="window.print()" style="padding: 10px 20px; background: #1e3a8a; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 20px; font-family: 'Outfit', sans-serif;">Imprimer les cartes (Recto / Verso)</button>
+          <button class="no-print" onclick="window.print()" style="padding: 10px 20px; background: #1e3a8a; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 20px; font-family: 'Outfit', sans-serif; box-shadow: 0 4px 12px rgba(30,58,138,0.2);">Imprimer les cartes (${isVertical ? 'Format Vertical' : 'Format Horizontal'})</button>
           
           <div class="card-container">
-            <!-- RECTO (Front) -->
+            ${isVertical ? `
+            <!-- RECTO (Front Vertical) -->
+            <div class="id-card">
+              <div class="header">
+                <div class="logo">INSTITUT BIBLIQUE REHOBOTH</div>
+                <div class="tagline">${schoolAddress} | Tél: ${schoolPhone}</div>
+                <div class="slogan-tag">« ${schoolSlogan} »</div>
+              </div>
+              <div class="content-vertical">
+                <div class="photo-box-v">
+                  ${c.student?.photo_url ? `<img src="${c.student.photo_url}" />` : 'IBR'}
+                </div>
+                <div class="details-v">
+                  <div class="name">${fullName(c.student?.last_name, c.student?.first_name)}</div>
+                  <div class="matricule">${c.student?.matricule ?? '-'}</div>
+                  
+                  <div class="label">Niveau d'études</div>
+                  <div class="value">${c.level?.name ?? '-'}</div>
+                  
+                  <div class="label">Mention académique</div>
+                  <div class="value">${c.level?.code === 'B2' ? 'Diplôme' : 'Certificat'}</div>
+                </div>
+              </div>
+              <div class="footer-card">
+                <span>CARTE D'ÉTUDIANT</span>
+                <span>ANNÉE: ${year?.name ?? ''} | EXP: ${formatDate(c.expiry_date)}</span>
+              </div>
+            </div>
+            
+            <!-- VERSO (Back Vertical) -->
+            <div class="id-card back-v">
+              <div class="back-header-v">
+                <img src="/Logo_IBR.jpeg" class="back-logo-v" />
+                <div class="back-title-v">
+                  INSTITUT BIBLIQUE REHOBOTH
+                  <span class="back-subtitle-v">${schoolAddress.toUpperCase()}</span>
+                </div>
+              </div>
+              
+              <div class="qr-code-v">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(checkUrl)}" />
+              </div>
+
+              <div class="rules-v">
+                Cette carte est strictly personnelle et valide la qualité d'étudiant inscrit à l'Institut Rehoboth. Le scan du code QR confirme sa validité.
+              </div>
+
+              <div class="signature-block-v">
+                <div style="font-size: 7.5px; color: #1e3a8a; line-height: 1.1;">
+                  <span style="color: #94a3b8; font-weight: 800; font-size: 6px; text-transform: uppercase; letter-spacing: 0.3px;">Le Fondateur</span><br/>
+                  <strong>Apôtre FATO Michel</strong>
+                </div>
+              </div>
+            </div>
+            ` : `
+            <!-- RECTO (Front Horizontal) -->
             <div class="id-card">
               <div class="header">
                 <div>
@@ -408,7 +689,7 @@ export function CardsPage() {
               </div>
             </div>
             
-            <!-- VERSO (Back) -->
+            <!-- VERSO (Back Horizontal) -->
             <div class="id-card back">
               <div class="back-header">
                 <img src="/Logo_IBR.jpeg" class="back-logo" />
@@ -439,6 +720,7 @@ export function CardsPage() {
                 </div>
               </div>
             </div>
+            `}
           </div>
         </body>
       </html>
@@ -485,7 +767,7 @@ export function CardsPage() {
                 </div>
               </div>
               <div className="flex gap-1.5 border-t pt-3 mt-2">
-                <button className="btn-secondary py-1 text-xs px-2 flex items-center gap-1" onClick={() => printStudentCard(c)}>
+                <button className="btn-secondary py-1 text-xs px-2 flex items-center gap-1" onClick={() => setPrintModalCard(c)}>
                   <Printer className="w-3.5 h-3.5" /> Imprimer
                 </button>
                 {c.status === 'generated' && <button className="btn-primary py-1 text-xs px-2 flex-1" onClick={() => updateCardStatus(c.id, 'printed')}>Marquer imprimée</button>}
@@ -548,6 +830,173 @@ export function CardsPage() {
             </button>
           </div>
         </div>
+      </Modal>
+
+      {/* Modale Choix Format & Aperçu avant Impression */}
+      <Modal open={!!printModalCard} onClose={() => setPrintModalCard(null)} title="Impression du Badge d'Étudiant">
+        {printModalCard && (
+          <div className="space-y-5">
+            <div>
+              <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block mb-2">Choisir l'orientation du badge :</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPrintOrientation('vertical')}
+                  className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 text-center ${
+                    printOrientation === 'vertical'
+                      ? 'border-ibr-700 bg-ibr-50 text-ibr-900 font-bold shadow-sm'
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="w-6 h-9 border-2 border-current rounded flex flex-col items-center justify-center p-0.5 bg-white">
+                    <div className="w-2.5 h-2.5 rounded-full bg-current mb-0.5"></div>
+                    <div className="w-4 h-0.5 bg-current mb-0.5"></div>
+                    <div className="w-3 h-0.5 bg-current"></div>
+                  </div>
+                  <span className="text-xs font-bold">Format Vertical (Portrait)</span>
+                  <span className="text-[10px] opacity-75 font-normal">Recommandé pour tour de cou / lanyard</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPrintOrientation('horizontal')}
+                  className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 text-center ${
+                    printOrientation === 'horizontal'
+                      ? 'border-ibr-700 bg-ibr-50 text-ibr-900 font-bold shadow-sm'
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="w-9 h-6 border-2 border-current rounded flex items-center justify-between p-0.5 bg-white">
+                    <div className="w-2.5 h-3.5 rounded bg-current"></div>
+                    <div className="flex-1 ml-1 space-y-0.5">
+                      <div className="w-full h-0.5 bg-current"></div>
+                      <div className="w-2/3 h-0.5 bg-current"></div>
+                    </div>
+                  </div>
+                  <span className="text-xs font-bold">Format Horizontal (Paysage)</span>
+                  <span className="text-[10px] opacity-75 font-normal">Format carte bancaire / portefeuille</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Visual Live Preview Box */}
+            <div className="bg-gray-100 p-4 rounded-xl border border-gray-200 flex flex-col items-center gap-4 max-h-[380px] overflow-y-auto">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Aperçu du badge ({printOrientation === 'vertical' ? 'Vertical 54x86 mm' : 'Horizontal 86x54 mm'})</span>
+              
+              <div className={`flex ${printOrientation === 'vertical' ? 'flex-col sm:flex-row items-center gap-4' : 'flex-col items-center gap-4'} justify-center scale-90 sm:scale-100 transform origin-center transition-all`}>
+                {printOrientation === 'vertical' ? (
+                  <>
+                    {/* Vertical RECTO Preview */}
+                    <div className="w-[180px] h-[282px] border border-blue-900/20 rounded-xl overflow-hidden bg-gradient-to-b from-white to-slate-50 shadow-md flex flex-col relative text-[8px]">
+                      <div className="bg-gradient-to-r from-blue-900 to-blue-700 text-white p-2 text-center relative border-b-2 border-yellow-400">
+                        <p className="font-black text-[9px] uppercase tracking-tighter">INSTITUT BIBLIQUE REHOBOTH</p>
+                        <p className="text-[5.5px] opacity-90">Bonoua, Côte d'Ivoire</p>
+                      </div>
+                      <div className="flex-1 p-2 flex flex-col items-center text-center gap-1.5">
+                        <div className="w-16 h-20 border-2 border-blue-900 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center font-bold text-blue-900 shadow-sm">
+                          {printModalCard.student?.photo_url ? (
+                            <img src={printModalCard.student.photo_url} className="w-full h-full object-cover" />
+                          ) : (
+                            'IBR'
+                          )}
+                        </div>
+                        <div className="w-full space-y-0.5">
+                          <p className="font-extrabold text-blue-950 uppercase text-[9.5px] leading-tight">{fullName(printModalCard.student?.last_name, printModalCard.student?.first_name)}</p>
+                          <p className="font-mono font-bold text-blue-600 text-[8px] bg-blue-50 px-1 py-0.5 rounded border border-blue-200 inline-block">{printModalCard.student?.matricule ?? '-'}</p>
+                          <p className="text-[7px] font-semibold text-slate-700 mt-1">{printModalCard.level?.name ?? '-'}</p>
+                        </div>
+                      </div>
+                      <div className="bg-slate-100 border-t p-1 px-2 text-[6px] font-bold text-slate-500 flex justify-between">
+                        <span>CARTE ÉTUDIANT</span>
+                        <span>{year?.name ?? ''}</span>
+                      </div>
+                    </div>
+
+                    {/* Vertical VERSO Preview */}
+                    <div className="w-[180px] h-[282px] border border-blue-900/20 rounded-xl overflow-hidden bg-white shadow-md flex flex-col items-center justify-between p-2 text-[7px] text-center">
+                      <div className="border-b pb-1 w-full flex flex-col items-center">
+                        <img src="/Logo_IBR.jpeg" className="w-6 h-6 object-contain mb-0.5" />
+                        <p className="font-extrabold text-blue-900 text-[8px]">INSTITUT BIBLIQUE REHOBOTH</p>
+                      </div>
+                      <div className="w-16 h-16 border p-0.5 rounded bg-white shadow-xs flex items-center justify-center my-1">
+                        <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(printModalCard.qr_code_data || `${window.location.origin}/check-card/${printModalCard.student?.id}`)}`} className="w-full h-full" />
+                      </div>
+                      <p className="text-[5.5px] text-slate-600 leading-tight">Cette carte est strictement personnelle et valide la qualité d'étudiant inscrit.</p>
+                      <div className="border-t border-dashed w-full pt-1 text-right">
+                        <p className="text-[5px] text-slate-400 font-bold uppercase">Le Fondateur</p>
+                        <p className="font-bold text-blue-900 text-[6.5px]">Apôtre FATO Michel</p>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Horizontal RECTO Preview */}
+                    <div className="w-[260px] h-[163px] border border-blue-900/20 rounded-xl overflow-hidden bg-gradient-to-b from-white to-slate-50 shadow-md flex flex-col relative text-[8px]">
+                      <div className="bg-gradient-to-r from-blue-900 to-blue-700 text-white p-2 text-left">
+                        <p className="font-black text-[9px] uppercase tracking-tight">INSTITUT BIBLIQUE REHOBOTH</p>
+                        <p className="text-[5.5px] opacity-90">Bonoua, Côte d'Ivoire</p>
+                      </div>
+                      <div className="p-2 flex gap-2.5 items-center flex-1">
+                        <div className="w-14 h-18 border border-blue-900/30 rounded bg-slate-100 flex items-center justify-center font-bold text-blue-900 shadow-xs">
+                          {printModalCard.student?.photo_url ? (
+                            <img src={printModalCard.student.photo_url} className="w-full h-full object-cover" />
+                          ) : (
+                            'IBR'
+                          )}
+                        </div>
+                        <div className="flex-1 space-y-0.5 text-left">
+                          <p className="font-extrabold text-blue-900 text-[9px] uppercase">{fullName(printModalCard.student?.last_name, printModalCard.student?.first_name)}</p>
+                          <p className="font-mono font-bold text-blue-600 text-[8px]">{printModalCard.student?.matricule ?? '-'}</p>
+                          <p className="text-[7.5px] font-semibold text-slate-700">{printModalCard.level?.name ?? '-'}</p>
+                        </div>
+                      </div>
+                      <div className="bg-slate-100 border-t p-1 px-2.5 text-[6px] font-bold text-slate-500 flex justify-between">
+                        <span>CARTE D'ÉTUDIANT</span>
+                        <span>{year?.name ?? ''}</span>
+                      </div>
+                    </div>
+
+                    {/* Horizontal VERSO Preview */}
+                    <div className="w-[260px] h-[163px] border border-blue-900/20 rounded-xl overflow-hidden bg-white shadow-md flex flex-col justify-between p-2 text-[7px]">
+                      <div className="flex items-center gap-1.5 border-b pb-1">
+                        <img src="/Logo_IBR.jpeg" className="w-5 h-5 object-contain" />
+                        <div>
+                          <p className="font-extrabold text-blue-900 text-[8px]">INSTITUT BIBLIQUE REHOBOTH</p>
+                          <p className="text-[5.5px] text-slate-500">BONOUA, CÔTE D'IVOIRE</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-12 h-12 border p-0.5 rounded bg-white shadow-xs">
+                          <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(printModalCard.qr_code_data || `${window.location.origin}/check-card/${printModalCard.student?.id}`)}`} className="w-full h-full" />
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          <p className="text-[5.5px] text-slate-600 leading-tight">Cette carte est strictement personnelle et valide la qualité d'étudiant inscrit.</p>
+                          <div className="border-t border-dashed pt-0.5 text-right">
+                            <p className="text-[5px] text-slate-400 font-bold uppercase">Le Fondateur</p>
+                            <p className="font-bold text-blue-900 text-[6.5px]">Apôtre FATO Michel</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button className="btn-secondary" onClick={() => setPrintModalCard(null)}>Annuler</button>
+              <button
+                className="btn-primary flex items-center gap-2 font-bold px-5 py-2.5"
+                onClick={() => {
+                  printStudentCard(printModalCard, printOrientation);
+                  setPrintModalCard(null);
+                }}
+              >
+                <Printer className="w-4 h-4" /> Imprimer au format {printOrientation === 'vertical' ? 'Vertical' : 'Horizontal'}
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );
