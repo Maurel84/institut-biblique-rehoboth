@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useRouter } from '../lib/router';
 import { useCurrentAcademicYear, useLevels, usePrograms, useToast } from '../lib/hooks';
 import { Card, PageHeader, LoadingSpinner, Badge, Modal, Select, EmptyState, ConfirmDialog } from '../components/ui';
-import { fullName, formatDate, formatFCFA, ACADEMIC_STATUS_LABELS } from '../lib/utils';
+import { fullName, formatDate, formatFCFA, ACADEMIC_STATUS_LABELS, sortModules, sortSubjects } from '../lib/utils';
 import type { AcademicYear, Teacher, Module, Subject, Enrollment, Student, Program, Level } from '../types';
 import {
   Plus, Calendar, School, Layers, GraduationCap, BookOpen, BookMarked,
