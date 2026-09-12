@@ -1502,6 +1502,7 @@ export function AuditPage() {
 export function DocumentsPage() {
   const { year } = useCurrentAcademicYear();
   const { levels } = useLevels();
+  const { settings } = useSettings();
   const [selectedLevel, setSelectedLevel] = useState('');
   const [students, setStudents] = useState<any[]>([]);
   const { show } = useToast();
