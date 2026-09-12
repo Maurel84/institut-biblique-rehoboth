@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { useCurrentAcademicYear, useLevels, useRoles, useToast, useSettings } from '../lib/hooks';
 import { Card, PageHeader, LoadingSpinner, Badge, Modal, Select, EmptyState } from '../components/ui';
-import { fullName, formatDate, formatFCFA, CARD_STATUS_LABELS, ACADEMIC_STATUS_LABELS } from '../lib/utils';
+import { fullName, formatDate, formatFCFA, CARD_STATUS_LABELS, ACADEMIC_STATUS_LABELS, sortModules, sortSubjects } from '../lib/utils';
 import type { StudentCard, UserProfile } from '../types';
 import {
   Plus, CreditCard as IdCardIcon, Users, Shield, Settings,
@@ -136,6 +136,7 @@ export function CardsPage() {
     const schoolPhone = infoValue?.phone || '+225 07000000';
     const schoolAddress = infoValue?.address || 'Bonoua, Côte d\'Ivoire';
     const schoolSlogan = infoValue?.slogan || 'VIVRE CHAQUE JOUR LA PLÉNITUDE DE LA PAROLE DE DIEU';
+    const founderName = infoValue?.founder || 'Apôtre FATO Michel';
 
     const isVertical = orientation === 'vertical';
 
@@ -651,7 +652,7 @@ export function CardsPage() {
               <div class="signature-block-v">
                 <div style="font-size: 7.5px; color: #1e3a8a; line-height: 1.1;">
                   <span style="color: #94a3b8; font-weight: 800; font-size: 6px; text-transform: uppercase; letter-spacing: 0.3px;">Le Fondateur</span><br/>
-                  <strong>Apôtre FATO Michel</strong>
+                  <strong>${(settings.institute_info?.value as any)?.founder || 'Apôtre FATO Michel'}</strong>
                 </div>
               </div>
             </div>
@@ -714,7 +715,7 @@ export function CardsPage() {
                   <div class="signature-block">
                     <div style="font-size: 7.5px; color: #1e3a8a; line-height: 1.1; text-align: right;">
                       <span style="color: #94a3b8; font-weight: 800; font-size: 6px; text-transform: uppercase; letter-spacing: 0.3px;">Le Fondateur</span><br/>
-                      <strong>Apôtre FATO Michel</strong>
+                      <strong>${(settings.institute_info?.value as any)?.founder || 'Apôtre FATO Michel'}</strong>
                     </div>
                   </div>
                 </div>
@@ -924,7 +925,7 @@ export function CardsPage() {
                       <p className="text-[5.5px] text-slate-600 leading-tight">Cette carte est strictement personnelle et valide la qualité d'étudiant inscrit.</p>
                       <div className="border-t border-dashed w-full pt-1 text-right">
                         <p className="text-[5px] text-slate-400 font-bold uppercase">Le Fondateur</p>
-                        <p className="font-bold text-blue-900 text-[6.5px]">Apôtre FATO Michel</p>
+                        <p className="font-bold text-blue-900 text-[6.5px]">${(settings.institute_info?.value as any)?.founder || 'Apôtre FATO Michel'}</p>
                       </div>
                     </div>
                   </>
@@ -973,7 +974,7 @@ export function CardsPage() {
                           <p className="text-[5.5px] text-slate-600 leading-tight">Cette carte est strictement personnelle et valide la qualité d'étudiant inscrit.</p>
                           <div className="border-t border-dashed pt-0.5 text-right">
                             <p className="text-[5px] text-slate-400 font-bold uppercase">Le Fondateur</p>
-                            <p className="font-bold text-blue-900 text-[6.5px]">Apôtre FATO Michel</p>
+                            <p className="font-bold text-blue-900 text-[6.5px]">${(settings.institute_info?.value as any)?.founder || 'Apôtre FATO Michel'}</p>
                           </div>
                         </div>
                       </div>
@@ -1309,7 +1310,17 @@ export function RolesPage() {
 export function SettingsPage() {
   const { settings, loading, refresh } = useSettings();
   const { show } = useToast();
-  const [institute, setInstitute] = useState({ name: '', short_name: '', address: '', phone: '', email: '', director: '', slogan: '' });
+  const [institute, setInstitute] = useState({
+    name: '',
+    short_name: '',
+    address: '',
+    phone: '',
+    email: '',
+    director: 'Jacques GOMÉ',
+    secretary_general: 'Honoré ASSAMOI',
+    founder: 'Apôtre FATO Michel',
+    slogan: ''
+  });
   const [matricule, setMatricule] = useState({ institute_code: 'IBR', separator: '/', digits: 4, start_number: 1, allow_manual: false });
   const [grading, setGrading] = useState({ method: 'weighted', round_decimals: 2, use_coefficients: true, ranking_method: 'standard' });
 
@@ -1322,7 +1333,9 @@ export function SettingsPage() {
         address: val.address || '',
         phone: val.phone || '',
         email: val.email || '',
-        director: val.director || '',
+        director: val.director || 'Jacques GOMÉ',
+        secretary_general: val.secretary_general || 'Honoré ASSAMOI',
+        founder: val.founder || 'Apôtre FATO Michel',
         slogan: val.slogan || 'VIVRE CHAQUE JOUR LA PLÉNITUDE DE LA PAROLE DE DIEU'
       });
     }
@@ -1332,7 +1345,7 @@ export function SettingsPage() {
 
   async function saveInstitute() {
     await supabase.from('settings').update({ value: institute as any }).eq('key', 'institute_info');
-    show("Informations de l'institut enregistrées", 'success');
+    show("Informations de l'institut et signatures enregistrées", 'success');
     refresh();
   }
 
@@ -1352,20 +1365,27 @@ export function SettingsPage() {
 
   return (
     <div className="animate-slide-in space-y-6">
-      <PageHeader title="Paramètres" subtitle="Configuration générale" />
+      <PageHeader title="Paramètres" subtitle="Configuration générale et signatures administratives" />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="p-6">
-          <h3 className="font-bold text-gray-900 text-base mb-4">Informations de l'institut</h3>
+          <h3 className="font-bold text-gray-900 text-base mb-4">Informations de l'institut & Signatures</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="label-field">Nom complet</label><input className="input-field" value={institute.name} onChange={(e) => setInstitute({ ...institute, name: e.target.value })} /></div>
             <div><label className="label-field">Sigle</label><input className="input-field" value={institute.short_name} onChange={(e) => setInstitute({ ...institute, short_name: e.target.value })} /></div>
             <div><label className="label-field">Adresse</label><input className="input-field" value={institute.address} onChange={(e) => setInstitute({ ...institute, address: e.target.value })} /></div>
             <div><label className="label-field">Téléphone</label><input className="input-field" value={institute.phone} onChange={(e) => setInstitute({ ...institute, phone: e.target.value })} /></div>
             <div className="sm:col-span-2"><label className="label-field">Slogan de l'institut</label><input className="input-field" value={institute.slogan} onChange={(e) => setInstitute({ ...institute, slogan: e.target.value })} /></div>
-            <div className="sm:col-span-2"><label className="label-field">Directeur</label><input className="input-field" value={institute.director} onChange={(e) => setInstitute({ ...institute, director: e.target.value })} /></div>
+            
+            <div className="sm:col-span-2 border-t pt-3 mt-1">
+              <h4 className="font-bold text-gray-800 text-xs uppercase tracking-wider mb-2 text-ibr-700">Signatures administratives officielles</h4>
+              <p className="text-[11px] text-gray-500 mb-3">Ces noms apparaissent sur les relevés de notes et cartes d'étudiants.</p>
+            </div>
+            <div><label className="label-field">Directeur Académique</label><input className="input-field" value={institute.director} onChange={(e) => setInstitute({ ...institute, director: e.target.value })} placeholder="Jacques GOMÉ" /></div>
+            <div><label className="label-field">Secrétaire Général</label><input className="input-field" value={institute.secretary_general} onChange={(e) => setInstitute({ ...institute, secretary_general: e.target.value })} placeholder="Honoré ASSAMOI" /></div>
+            <div className="sm:col-span-2"><label className="label-field">Fondateur / Présidence</label><input className="input-field" value={institute.founder} onChange={(e) => setInstitute({ ...institute, founder: e.target.value })} placeholder="Apôtre FATO Michel" /></div>
           </div>
-          <button className="btn-primary mt-4" onClick={saveInstitute}>Enregistrer</button>
+          <button className="btn-primary mt-4" onClick={saveInstitute}>Enregistrer les informations</button>
         </Card>
 
         <Card className="p-6">
@@ -1520,15 +1540,20 @@ export function DocumentsPage() {
     ]);
 
     const student = studRes.data;
-    const subjects = subjsRes.data ?? [];
+    const subjects = sortSubjects(subjsRes.data ?? []);
     const grades = gradesRes.data ?? [];
 
     if (!student) { show('Étudiant introuvable', 'error'); return; }
 
+    const infoValue = settings.institute_info?.value as any;
+    const academicDirectorName = infoValue?.director || 'Jacques GOMÉ';
+    const secretaryGeneralName = infoValue?.secretary_general || 'Honoré ASSAMOI';
+
     let totalPoints = 0;
     let totalCoefs = 0;
     let counted = 0;
-    
+    let currentModuleId = '';
+
     const rowsHtml = subjects.map((sub) => {
       const g = grades.find((x) => x.subject_id === sub.id);
       const isEx = g?.is_exempted;
@@ -1544,9 +1569,24 @@ export function DocumentsPage() {
         counted++;
       }
 
+      let moduleHeader = '';
+      if (sub.module_id !== currentModuleId) {
+        currentModuleId = sub.module_id;
+        const modName = sub.module?.name ?? 'SANS MODULE';
+        const modCode = sub.module?.code ? ` [${sub.module.code}]` : '';
+        moduleHeader = `
+          <tr style="background: #1e3a8a; color: white; font-weight: bold; font-size: 11px;">
+            <td colspan="6" style="padding: 7px 10px; text-transform: uppercase; letter-spacing: 0.5px; background: #1e3a8a; color: white;">
+              ${modName}${modCode}
+            </td>
+          </tr>
+        `;
+      }
+
       return `
+        ${moduleHeader}
         <tr>
-          <td>${sub.code}</td>
+          <td style="font-family: monospace; font-weight: bold;">${sub.code}</td>
           <td>${sub.name}</td>
           <td>${sub.module?.name ?? '-'}</td>
           <td style="text-align: center;">${coef}</td>
@@ -1569,7 +1609,7 @@ export function DocumentsPage() {
             .title { text-align: center; color: #1e40af; font-size: 24px; font-weight: 800; letter-spacing: 1px; }
             .student-info { margin-bottom: 25px; font-size: 14px; line-height: 1.5; }
             table.grades { width: 100%; border-collapse: collapse; margin-top: 15px; }
-            table.grades th, table.grades td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; }
+            table.grades th, table.grades td { border: 1px solid #cbd5e1; padding: 8px 10px; text-align: left; }
             table.grades th { background: #f1f5f9; color: #0f172a; font-weight: bold; }
             .totals { margin-top: 25px; float: right; width: 300px; font-size: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; }
             .totals-row { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #e2e8f0; }
@@ -1642,14 +1682,14 @@ export function DocumentsPage() {
 
           <div class="signatures">
             <div class="signature-box">
-              <p>Le Directeur Académique</p>
-              <div style="height: 60px;"></div>
-              <p>Jacques GOME</p>
+              <p style="font-weight: bold;">Le Directeur Académique</p>
+              <div style="height: 50px;"></div>
+              <p style="font-weight: 800; color: #1e3a8a;">${academicDirectorName}</p>
             </div>
             <div class="signature-box">
-              <p>Le Secrétaire Général</p>
-              <div style="height: 60px;"></div>
-              <p>Honoré ASSAMOI</p>
+              <p style="font-weight: bold;">Le Secrétaire Général</p>
+              <div style="height: 50px;"></div>
+              <p style="font-weight: 800; color: #1e3a8a;">${secretaryGeneralName}</p>
             </div>
           </div>
         </body>
@@ -1663,13 +1703,13 @@ export function DocumentsPage() {
   async function generateClassGrid() {
     if (!year || !selectedLevel) return;
     
-    // Load subjects and students
+    // Load subjects and students (Sorted Module 1 -> 5)
     const [subjsRes, gradesRes] = await Promise.all([
-      supabase.from('subjects').select('*').eq('academic_year_id', year.id).eq('level_id', selectedLevel).order('order_index'),
+      supabase.from('subjects').select('*, module:modules(*)').eq('academic_year_id', year.id).eq('level_id', selectedLevel).order('order_index'),
       supabase.from('grades').select('*').eq('academic_year_id', year.id).eq('level_id', selectedLevel),
     ]);
 
-    const subjects = subjsRes.data ?? [];
+    const subjects = sortSubjects(subjsRes.data ?? []);
     const allGrades = gradesRes.data ?? [];
     const levelObj = levels.find((l) => l.id === selectedLevel);
 

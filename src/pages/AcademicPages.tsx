@@ -623,18 +623,16 @@ export function TeachersPage() {
 export function ModulesPage() {
   const { year } = useCurrentAcademicYear();
   const { levels } = useLevels();
+  const [levelFilter, setLevelFilter] = useState<string>('');
   const [modules, setModules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [levelFilter, setLevelFilter] = useState('');
+  const [expandedModuleId, setExpandedModuleId] = useState<string | null>(null);
   
   // Modals for module management
   const [showModal, setShowModal] = useState(false);
   const [editingModule, setEditingModule] = useState<any>(null);
   const [deletingModule, setDeletingModule] = useState<any>(null);
   const [form, setForm] = useState({ name: '', code: '', order_index: 1, color: '#1e40af', level_id: '' });
-
-  // Accordion state
-  const [expandedModuleId, setExpandedModuleId] = useState<string | null>(null);
 
   // Modals for subject management
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -654,7 +652,7 @@ export function ModulesPage() {
 
   const { show } = useToast();
 
-  // Load modules + subjects
+  // Load modules + subjects (Strictly sorted Module 1 -> 5)
   const load = useCallback(async () => {
     if (!year) return;
     setLoading(true);
@@ -669,10 +667,13 @@ export function ModulesPage() {
     if (levelFilter) subjectsQuery = subjectsQuery.eq('level_id', levelFilter);
     const { data: subjectsData } = await subjectsQuery;
 
+    const sortedModules = sortModules(modulesData ?? []);
+    const sortedSubjects = sortSubjects(subjectsData ?? []);
+
     // Map subjects to their modules
-    const mapped = (modulesData ?? []).map((m: any) => ({
+    const mapped = sortedModules.map((m: any) => ({
       ...m,
-      subjects: (subjectsData ?? []).filter((s: any) => s.module_id === m.id)
+      subjects: sortSubjects(sortedSubjects.filter((s: any) => s.module_id === m.id))
     }));
 
     setModules(mapped);
@@ -1135,7 +1136,7 @@ export function SubjectsPage() {
     let query = supabase.from('subjects').select('*, module:modules(*), teacher:teachers(*), level:levels(*)').eq('academic_year_id', year.id).order('order_index');
     if (levelFilter) query = query.eq('level_id', levelFilter);
     const { data } = await query;
-    setSubjects(data ?? []);
+    setSubjects(sortSubjects(data ?? []));
     setLoading(false);
   }, [year, levelFilter]);
 
@@ -1148,7 +1149,7 @@ export function SubjectsPage() {
   async function loadModules(levelId: string) {
     if (!year || !levelId) { setModules([]); return; }
     const { data } = await supabase.from('modules').select('*').eq('academic_year_id', year.id).eq('level_id', levelId).order('order_index');
-    setModules(data ?? []);
+    setModules(sortModules(data ?? []));
   }
 
   async function handleSave() {

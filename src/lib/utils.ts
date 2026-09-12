@@ -116,3 +116,44 @@ export const STOCK_MOVEMENT_LABELS: Record<string, string> = {
   loss: 'Perte',
   correction: "Correction d'inventaire",
 };
+
+/**
+ * Tri naturel universel pour les modules (Niveau -> order_index -> Code/Nom numérique ex: Module 1, Module 2... Module 10)
+ */
+export function sortModules<T extends { order_index?: number; code?: string; name?: string; level?: any }>(modules: T[]): T[] {
+  return [...modules].sort((a, b) => {
+    if (a.level && b.level && (a.level.order_index !== b.level.order_index)) {
+      return (a.level.order_index ?? 0) - (b.level.order_index ?? 0);
+    }
+    if ((a.order_index ?? 0) !== (b.order_index ?? 0)) {
+      return (a.order_index ?? 0) - (b.order_index ?? 0);
+    }
+    const nameA = a.code || a.name || '';
+    const nameB = b.code || b.name || '';
+    return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+  });
+}
+
+/**
+ * Tri naturel universel pour les matières (Module -> order_index -> Code/Nom numérique)
+ */
+export function sortSubjects<T extends { order_index?: number; code?: string; name?: string; module?: any }>(subjects: T[]): T[] {
+  return [...subjects].sort((a, b) => {
+    if (a.module && b.module) {
+      if ((a.module.order_index ?? 0) !== (b.module.order_index ?? 0)) {
+        return (a.module.order_index ?? 0) - (b.module.order_index ?? 0);
+      }
+      const modA = a.module.code || a.module.name || '';
+      const modB = b.module.code || b.module.name || '';
+      const modComp = modA.localeCompare(modB, undefined, { numeric: true, sensitivity: 'base' });
+      if (modComp !== 0) return modComp;
+    }
+    if ((a.order_index ?? 0) !== (b.order_index ?? 0)) {
+      return (a.order_index ?? 0) - (b.order_index ?? 0);
+    }
+    const nameA = a.code || a.name || '';
+    const nameB = b.code || b.name || '';
+    return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+  });
+}
+

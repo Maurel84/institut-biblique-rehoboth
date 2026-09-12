@@ -54,15 +54,15 @@ export function GradesPage() {
   // Load modules when year/level changes
   useEffect(() => {
     if (!year || !levelId) { setModules([]); return; }
-    supabase.from('modules').select('*').eq('academic_year_id', year.id).eq('level_id', levelId).order('order_index')
-      .then(({ data }) => { setModules(data ?? []); setModuleId(''); setSubjects([]); setSubjectId(''); });
+    supabase.from('modules').select('*, level:levels(*)').eq('academic_year_id', year.id).eq('level_id', levelId).order('order_index')
+      .then(({ data }) => { setModules(sortModules(data ?? [])); setModuleId(''); setSubjects([]); setSubjectId(''); });
   }, [year, levelId]);
 
   // Load subjects when module changes
   useEffect(() => {
     if (!year || !moduleId) { setSubjects([]); return; }
-    supabase.from('subjects').select('*, teacher:teachers(*)').eq('academic_year_id', year.id).eq('module_id', moduleId).order('order_index')
-      .then(({ data }) => { setSubjects(data ?? []); setSubjectId(''); });
+    supabase.from('subjects').select('*, module:modules(*), teacher:teachers(*)').eq('academic_year_id', year.id).eq('module_id', moduleId).order('order_index')
+      .then(({ data }) => { setSubjects(sortSubjects(data ?? [])); setSubjectId(''); });
   }, [year, moduleId]);
 
   // Fetch ranking config
@@ -451,8 +451,9 @@ export function GradesPage() {
     if (!year || !levelId) return;
     setLoading(true);
 
-    // 1. Get subjects
-    const { data: subjs } = await supabase.from('subjects').select('*').eq('academic_year_id', year.id).eq('level_id', levelId).eq('is_active', true);
+    // 1. Get subjects (Sorted Module 1 -> 5)
+    const { data: rawSubjs } = await supabase.from('subjects').select('*, module:modules(*)').eq('academic_year_id', year.id).eq('level_id', levelId).eq('is_active', true);
+    const subjs = sortSubjects(rawSubjs ?? []);
     if (!subjs || subjs.length === 0) {
       show('Aucune matière configurée pour ce niveau.', 'error');
       setLoading(false);
