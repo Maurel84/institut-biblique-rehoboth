@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useCurrentAcademicYear, useLevels, useToast } from '../lib/hooks';
 import { Card, PageHeader, LoadingSpinner, Badge, Select, EmptyState, Modal } from '../components/ui';
-import { fullName, GRADE_STATUS_LABELS, formatNumber, formatFCFA } from '../lib/utils';
+import { fullName, GRADE_STATUS_LABELS, formatNumber, formatFCFA, sortModules, sortSubjects } from '../lib/utils';
 import {
   ClipboardList, Save, Lock, CheckCircle, AlertCircle, FileSpreadsheet,
   Award, ShieldAlert, CheckSquare, Edit3, HelpCircle, Plus
