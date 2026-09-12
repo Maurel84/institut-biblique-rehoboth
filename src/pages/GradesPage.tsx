@@ -119,7 +119,7 @@ export function GradesPage() {
     setGrades(gradeMap);
     setDirty(false);
     setLoading(false);
-  }, [year, subjectId, subjects, levelId]);
+  }, [year, subjectId, levelId]);
 
   useEffect(() => {
     if (subjectId) loadGradesAndBonuses();

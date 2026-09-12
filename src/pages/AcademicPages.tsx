@@ -1204,7 +1204,9 @@ export function SubjectsPage() {
         actions={
           <button className="btn-primary flex items-center gap-2" onClick={() => {
             setEditingSubject(null);
-            setForm({ code: '', name: '', module_id: '', level_id: '', teacher_id: '', coefficient: '1', passing_threshold: '50', order_index: '1' });
+            const initialLevelId = levelFilter || (levels.length > 0 ? levels[0].id : '');
+            if (initialLevelId) loadModules(initialLevelId);
+            setForm({ code: '', name: '', module_id: '', level_id: initialLevelId, teacher_id: '', coefficient: '1', passing_threshold: '50', order_index: (subjects.length + 1).toString() });
             setShowModal(true);
           }}>
             <Plus className="w-4 h-4" /> Nouvelle matière
