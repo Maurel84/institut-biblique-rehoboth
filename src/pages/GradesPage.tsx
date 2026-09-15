@@ -1090,8 +1090,7 @@ export function RankingsPage() {
       .from('grades')
       .select('*')
       .eq('academic_year_id', year.id)
-      .eq('level_id', levelId)
-      .in('status', ['validated', 'submitted', 'corrected', 'locked']);
+      .eq('level_id', levelId);
 
     // Calculate averages
     const studentResults: any[] = [];
@@ -1104,9 +1103,11 @@ export function RankingsPage() {
 
       for (const subj of subjects) {
         const grade = grades?.find((g: any) => g.student_id === student.id && g.subject_id === subj.id);
-        if (!grade || grade.score === null || grade.is_exempted || grade.is_not_available) continue;
+        if (grade?.is_exempted) continue; // Exempted students don't have this coefficient in denominator
 
-        const val = grade.is_absent ? 0 : grade.score;
+        const isAb = grade?.is_absent;
+        const val = (grade && grade.score !== null && grade.score !== undefined && !isAb) ? grade.score : 0;
+
         totalPoints += val * subj.coefficient;
         totalCoefficients += subj.coefficient;
         subjectsCounted++;
