@@ -1564,8 +1564,9 @@ export function DocumentsPage() {
       const coef = isEx ? '-' : sub.coefficient;
       const points = isEx || score === null || score === undefined ? '-' : (isAb ? 0 : score * sub.coefficient);
 
-      if (!isEx && score !== null && score !== undefined) {
-        totalPoints += isAb ? 0 : (score * sub.coefficient);
+      if (!isEx) {
+        const subScore = (score !== null && score !== undefined && !isAb) ? score : 0;
+        totalPoints += subScore * sub.coefficient;
         totalCoefs += sub.coefficient;
         counted++;
       }
@@ -1729,12 +1730,12 @@ export function DocumentsPage() {
         const score = g?.score;
         const scoreVal = isAb ? 0 : (score ?? 0);
 
-        if (!isEx && score !== null && score !== undefined) {
+        if (!isEx) {
           totalPoints += scoreVal * sub.coefficient;
           totalCoefs += sub.coefficient;
         }
 
-        const displayScore = isEx ? 'DISP' : isAb ? 'ABS' : score !== null && score !== undefined ? score.toString() : '-';
+        const displayScore = isEx ? 'DISP' : isAb ? 'ABS' : score !== null && score !== undefined ? score.toString() : '0';
         return `<td style="text-align: center; font-size: 11px;">${displayScore}</td>`;
       }).join('');
 

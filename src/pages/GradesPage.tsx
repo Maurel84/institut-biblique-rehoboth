@@ -498,9 +498,11 @@ export function GradesPage() {
 
       for (const sub of subjs) {
         const grade = allGrades?.find((g) => g.student_id === stud.id && g.subject_id === sub.id);
-        if (!grade || grade.score === null || grade.is_exempted || grade.is_not_available) continue;
+        if (grade?.is_exempted) continue; // Exempted students don't have this coefficient in denominator
 
-        const val = grade.is_absent ? 0 : grade.score;
+        const isAb = grade?.is_absent;
+        const val = (grade && grade.score !== null && grade.score !== undefined && !isAb) ? grade.score : 0;
+
         totalPoints += val * sub.coefficient;
         totalCoefs += sub.coefficient;
         counted++;
