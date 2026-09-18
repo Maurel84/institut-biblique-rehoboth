@@ -89,7 +89,9 @@ export function GradesPage() {
       .eq('level_id', levelIdToUse)
       .eq('status', 'validated');
 
-    const enrolledStudents = (enrollments ?? []).map((e: any) => e.student).filter(Boolean);
+    const enrolledStudents = (enrollments ?? [])
+      .map((e: any) => e.student)
+      .filter((s: any) => s && s.academic_status !== 'abandonne' && s.academic_status !== 'exclu' && s.academic_status !== 'suspendu' && !s.deleted_at);
     enrolledStudents.sort((a: any, b: any) => a.last_name.localeCompare(b.last_name));
     setStudents(enrolledStudents);
 
@@ -467,7 +469,9 @@ export function GradesPage() {
       .eq('academic_year_id', year.id)
       .eq('level_id', levelId)
       .eq('status', 'validated');
-    const enrolledStudents = (enrolls ?? []).map((e: any) => e.student).filter(Boolean);
+    const enrolledStudents = (enrolls ?? [])
+      .map((e: any) => e.student)
+      .filter((s: any) => s && s.academic_status !== 'abandonne' && s.academic_status !== 'exclu' && s.academic_status !== 'suspendu' && !s.deleted_at);
 
     // 3. Get grades
     const { data: allGrades } = await supabase
@@ -1083,7 +1087,9 @@ export function RankingsPage() {
       .eq('academic_year_id', year.id)
       .eq('level_id', levelId)
       .eq('status', 'validated');
-    const students = (enrollments ?? []).map((e: any) => e.student).filter(Boolean);
+    const students = (enrollments ?? [])
+      .map((e: any) => e.student)
+      .filter((s: any) => s && s.academic_status !== 'abandonne' && s.academic_status !== 'exclu' && s.academic_status !== 'suspendu' && !s.deleted_at);
 
     // Get all grades
     const { data: grades } = await supabase

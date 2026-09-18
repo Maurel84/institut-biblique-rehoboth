@@ -1520,7 +1520,9 @@ export function DocumentsPage() {
         .eq('level_id', selectedLevel)
         .eq('status', 'validated')
         .then(({ data }) => {
-          const list = (data ?? []).map((e: any) => e.student).filter(Boolean);
+          const list = (data ?? [])
+            .map((e: any) => e.student)
+            .filter((s: any) => s && s.academic_status !== 'abandonne' && s.academic_status !== 'exclu' && s.academic_status !== 'suspendu' && !s.deleted_at);
           list.sort((a: any, b: any) => a.last_name.localeCompare(b.last_name));
           setStudents(list);
         });
