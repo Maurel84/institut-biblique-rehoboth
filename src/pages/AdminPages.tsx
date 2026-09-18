@@ -1740,10 +1740,11 @@ export function DocumentsPage() {
       </th>
     `).join('');
 
-    // Header Row 2 (Subjects per module)
+    // Header Row 2 (Subjects per module - Subject Names)
     const subjectHeaderCells = subjects.map((sub) => `
-      <th style="font-size: 8.5px; text-align: center; min-width: 52px; background: #f1f5f9; color: #0f172a; padding: 4px; border: 1px solid #cbd5e1;">
-        ${sub.code}<br/><span style="font-weight: normal; color: #475569;">(x${sub.coefficient})</span>
+      <th style="font-size: 8px; text-align: center; min-width: 65px; max-width: 100px; background: #f1f5f9; color: #0f172a; padding: 5px 3px; border: 1px solid #cbd5e1; word-wrap: break-word; vertical-align: bottom;">
+        <div style="font-weight: bold; color: #0f172a; line-height: 1.15; margin-bottom: 2px;">${sub.name}</div>
+        <span style="font-weight: normal; color: #475569; font-size: 7.5px;">(x${sub.coefficient})</span>
       </th>
     `).join('');
 
