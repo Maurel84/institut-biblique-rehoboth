@@ -1716,12 +1716,40 @@ export function DocumentsPage() {
     const subjects = sortSubjects(subjsRes.data ?? []);
     const allGrades = gradesRes.data ?? [];
     const levelObj = levels.find((l) => l.id === selectedLevel);
+    const infoValue = settings.institute_info?.value as any;
+    const academicDirectorName = infoValue?.director || 'Jacques GOMÉ';
+    const secretaryGeneralName = infoValue?.secretary_general || 'Honoré ASSAMOI';
 
-    const tableHeaders = subjects.map((sub) => `
-      <th style="font-size: 9px; text-align: center; min-width: 60px;">${sub.code}<br/><span style="font-weight: normal;">(x${sub.coefficient})</span></th>
+    // Group subjects by module for header row (ordered Module 1 -> 5)
+    const moduleGroups: { moduleName: string; moduleCode: string; subjects: any[] }[] = [];
+    subjects.forEach((sub) => {
+      const modName = sub.module?.name || 'SANS MODULE';
+      const modCode = sub.module?.code || '';
+      let group = moduleGroups.find((g) => g.moduleName === modName);
+      if (!group) {
+        group = { moduleName: modName, moduleCode: modCode, subjects: [] };
+        moduleGroups.push(group);
+      }
+      group.subjects.push(sub);
+    });
+
+    // Header Row 1 (Modules grouped with background colors)
+    const moduleHeaderCells = moduleGroups.map((group, idx) => `
+      <th colspan="${group.subjects.length}" style="text-align: center; background: ${idx % 2 === 0 ? '#1e3a8a' : '#1d4ed8'}; color: white; font-weight: bold; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; padding: 6px 4px; border: 1px solid #1e293b;">
+        ${group.moduleName}${group.moduleCode ? ` [${group.moduleCode}]` : ''}
+      </th>
     `).join('');
 
-    const tableRows = students.map((s, idx) => {
+    // Header Row 2 (Subjects per module)
+    const subjectHeaderCells = subjects.map((sub) => `
+      <th style="font-size: 8.5px; text-align: center; min-width: 52px; background: #f1f5f9; color: #0f172a; padding: 4px; border: 1px solid #cbd5e1;">
+        ${sub.code}<br/><span style="font-weight: normal; color: #475569;">(x${sub.coefficient})</span>
+      </th>
+    `).join('');
+
+    const studentResults: { student: any; name: string; matricule: string; average: number; rowHtml: string }[] = [];
+
+    students.forEach((s, idx) => {
       let totalPoints = 0;
       let totalCoefs = 0;
 
@@ -1742,17 +1770,34 @@ export function DocumentsPage() {
       }).join('');
 
       const avg = totalCoefs > 0 ? (totalPoints / totalCoefs) : 0;
+      const sName = fullName(s.last_name, s.first_name);
 
-      return `
+      const rowHtml = `
         <tr>
-          <td>${idx + 1}</td>
-          <td><strong>${fullName(s.last_name, s.first_name)}</strong></td>
+          <td style="text-align: center; font-weight: bold;">${idx + 1}</td>
+          <td><strong>${sName}</strong></td>
           <td style="font-family: monospace;">${s.matricule ?? '-'}</td>
           ${subjectCells}
           <td style="text-align: center; font-weight: bold; background: #f8fafc; color: #1e40af;">${avg.toFixed(2)}</td>
         </tr>
       `;
-    }).join('');
+
+      studentResults.push({
+        student: s,
+        name: sName,
+        matricule: s.matricule,
+        average: avg,
+        rowHtml
+      });
+    });
+
+    const tableRows = studentResults.map((r) => r.rowHtml).join('');
+
+    // Calculate Top 3 (Podium)
+    const sortedForPodium = [...studentResults].sort((a, b) => b.average - a.average);
+    const top1 = sortedForPodium[0];
+    const top2 = sortedForPodium[1];
+    const top3 = sortedForPodium[2];
 
     const html = `
       <html>
@@ -1788,17 +1833,73 @@ export function DocumentsPage() {
           <table>
             <thead>
               <tr>
-                <th style="width: 40px;">N°</th>
-                <th>Nom et Prénoms</th>
-                <th>Matricule</th>
-                ${tableHeaders}
-                <th style="text-align: center; background: #f1f5f9; color: #1e40af;">Moyenne</th>
+                <th rowspan="2" style="width: 35px; text-align: center; background: #0f172a; color: white;">N°</th>
+                <th rowspan="2" style="background: #0f172a; color: white;">Nom et Prénoms</th>
+                <th rowspan="2" style="background: #0f172a; color: white;">Matricule</th>
+                ${moduleHeaderCells}
+                <th rowspan="2" style="text-align: center; background: #0f172a; color: white; width: 75px;">Moyenne</th>
+              </tr>
+              <tr>
+                ${subjectHeaderCells}
               </tr>
             </thead>
             <tbody>
               ${tableRows}
             </tbody>
           </table>
+
+          <!-- PODIUM TRIO DE TÊTE -->
+          <div style="margin-top: 30px; page-break-inside: avoid;">
+            <div style="font-weight: 800; font-size: 13px; color: #1e3a8a; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">
+              🏆 CLASSEMENT DU TRIO DE TÊTE (3 PREMIERS DE LA PROMOTION)
+            </div>
+
+            <div style="display: flex; gap: 15px; margin-bottom: 25px;">
+              <!-- 1er -->
+              ${top1 ? `
+              <div style="flex: 1; border: 2px solid #eab308; background: #fefce8; border-radius: 8px; padding: 12px; position: relative;">
+                <div style="position: absolute; top: -10px; right: 10px; background: #eab308; color: white; font-weight: bold; font-size: 10px; padding: 2px 8px; border-radius: 10px;">🥇 1ER RANG</div>
+                <div style="font-weight: 800; font-size: 14px; color: #854d0e;">${top1.name}</div>
+                <div style="font-size: 11px; color: #a16207; font-family: monospace;">Matricule : ${top1.matricule ?? '-'}</div>
+                <div style="font-weight: 900; font-size: 18px; color: #713f12; margin-top: 6px;">${top1.average.toFixed(2)} <span style="font-size: 11px; font-weight: normal;">/ 100</span></div>
+              </div>
+              ` : ''}
+
+              <!-- 2ème -->
+              ${top2 ? `
+              <div style="flex: 1; border: 2px solid #94a3b8; background: #f8fafc; border-radius: 8px; padding: 12px; position: relative;">
+                <div style="position: absolute; top: -10px; right: 10px; background: #94a3b8; color: white; font-weight: bold; font-size: 10px; padding: 2px 8px; border-radius: 10px;">🥈 2ÈME RANG</div>
+                <div style="font-weight: 800; font-size: 14px; color: #334155;">${top2.name}</div>
+                <div style="font-size: 11px; color: #64748b; font-family: monospace;">Matricule : ${top2.matricule ?? '-'}</div>
+                <div style="font-weight: 900; font-size: 18px; color: #1e293b; margin-top: 6px;">${top2.average.toFixed(2)} <span style="font-size: 11px; font-weight: normal;">/ 100</span></div>
+              </div>
+              ` : ''}
+
+              <!-- 3ème -->
+              ${top3 ? `
+              <div style="flex: 1; border: 2px solid #d97706; background: #fff7ed; border-radius: 8px; padding: 12px; position: relative;">
+                <div style="position: absolute; top: -10px; right: 10px; background: #d97706; color: white; font-weight: bold; font-size: 10px; padding: 2px 8px; border-radius: 10px;">🥉 3ÈME RANG</div>
+                <div style="font-weight: 800; font-size: 14px; color: #9a3412;">${top3.name}</div>
+                <div style="font-size: 11px; color: #c2410c; font-family: monospace;">Matricule : ${top3.matricule ?? '-'}</div>
+                <div style="font-weight: 900; font-size: 18px; color: #7c2d12; margin-top: 6px;">${top3.average.toFixed(2)} <span style="font-size: 11px; font-weight: normal;">/ 100</span></div>
+              </div>
+              ` : ''}
+            </div>
+          </div>
+
+          <!-- SIGNATURES -->
+          <div style="margin-top: 40px; display: flex; justify-content: space-between; page-break-inside: avoid;">
+            <div style="text-align: center; width: 250px;">
+              <p style="font-weight: bold; font-size: 12px;">Le Directeur Académique</p>
+              <div style="height: 45px;"></div>
+              <p style="font-weight: 800; color: #1e3a8a; font-size: 12px;">${academicDirectorName}</p>
+            </div>
+            <div style="text-align: center; width: 250px;">
+              <p style="font-weight: bold; font-size: 12px;">Le Secrétaire Général</p>
+              <div style="height: 45px;"></div>
+              <p style="font-weight: 800; color: #1e3a8a; font-size: 12px;">${secretaryGeneralName}</p>
+            </div>
+          </div>
         </body>
       </html>
     `;
