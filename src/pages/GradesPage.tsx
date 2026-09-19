@@ -500,29 +500,48 @@ export function GradesPage() {
       let failed = 0;
       let counted = 0;
 
+      const levelObj = levels.find((l) => l.id === levelId);
+      const isFirstYear = !levelObj || levelObj.order_index === 1 || (levelObj.name || '').toLowerCase().includes('première') || (levelObj.name || '').toLowerCase().includes('1ère') || (levelObj.code || '').toLowerCase().includes('b1');
+
       for (const sub of subjs) {
         const grade = allGrades?.find((g) => g.student_id === stud.id && g.subject_id === sub.id);
-        if (!grade || grade.score === null || grade.score === undefined || grade.is_exempted || grade.is_not_available) continue;
+        if (grade?.is_exempted) continue; // Exempted students don't have this coefficient in denominator
 
-        const isAb = grade.is_absent;
-        const val = isAb ? 0 : grade.score;
+        if (isFirstYear) {
+          // Première année : Toutes les matières du niveau comptent dans le dénominateur
+          const isAb = grade?.is_absent;
+          const val = (grade && grade.score !== null && grade.score !== undefined && !isAb) ? grade.score : 0;
 
-        totalPoints += val * sub.coefficient;
-        totalCoefs += sub.coefficient;
-        counted++;
+          totalPoints += val * sub.coefficient;
+          totalCoefs += sub.coefficient;
+          counted++;
 
-        if (val >= sub.passing_threshold) passed++;
-        else failed++;
+          if (val >= sub.passing_threshold) passed++;
+          else failed++;
+        } else {
+          // Deuxième année+ : Calcul sur les matières composées
+          if (!grade || grade.score === null || grade.score === undefined || grade.is_not_available) continue;
+
+          const isAb = grade.is_absent;
+          const val = isAb ? 0 : grade.score;
+
+          totalPoints += val * sub.coefficient;
+          totalCoefs += sub.coefficient;
+          counted++;
+
+          if (val >= sub.passing_threshold) passed++;
+          else failed++;
+        }
       }
 
       const weightedAvg = totalCoefs > 0 ? (totalPoints / totalCoefs) : 0;
       const bonusPoints = bonusMap[stud.id] || 0;
       const finalAverage = Math.round((weightedAvg + bonusPoints) * 100) / 100;
-      const completionRate = subjs.length > 0 ? (counted / subjs.length) * 100 : 0;
+      const completionRate = isFirstYear ? 100 : (subjs.length > 0 ? (counted / subjs.length) * 100 : 0);
 
-      // Classify decision draft (<80% composed -> dossier_incomplet)
+      // Classify decision draft (<80% composed -> dossier_incomplet pour 2ème année+)
       let draftDecision = 'ajourne';
-      if (completionRate < 80) draftDecision = 'dossier_incomplet';
+      if (!isFirstYear && completionRate < 80) draftDecision = 'dossier_incomplet';
       else if (finalAverage >= 10 && failed === 0) draftDecision = 'admis';
       else if (finalAverage >= 10) draftDecision = 'admis_reserve';
       else if (finalAverage >= 8) draftDecision = 'ajourne';
@@ -1100,6 +1119,9 @@ export function RankingsPage() {
       .eq('academic_year_id', year.id)
       .eq('level_id', levelId);
 
+    const levelObj = levels.find((l) => l.id === levelId);
+    const isFirstYear = !levelObj || levelObj.order_index === 1 || (levelObj.name || '').toLowerCase().includes('première') || (levelObj.name || '').toLowerCase().includes('1ère') || (levelObj.code || '').toLowerCase().includes('b1');
+
     // Calculate averages
     const studentResults: any[] = [];
     for (const student of students) {
@@ -1111,21 +1133,36 @@ export function RankingsPage() {
 
       for (const subj of subjects) {
         const grade = grades?.find((g: any) => g.student_id === student.id && g.subject_id === subj.id);
-        if (!grade || grade.score === null || grade.score === undefined || grade.is_exempted || grade.is_not_available) continue;
+        if (grade?.is_exempted) continue; // Exempted students don't have this coefficient in denominator
 
-        const isAb = grade.is_absent;
-        const val = isAb ? 0 : grade.score;
+        if (isFirstYear) {
+          // Première année : Toute matière non composée compte comme 0/100, coefficient inclus au dénominateur
+          const isAb = grade?.is_absent;
+          const val = (grade && grade.score !== null && grade.score !== undefined && !isAb) ? grade.score : 0;
 
-        totalPoints += val * subj.coefficient;
-        totalCoefficients += subj.coefficient;
-        subjectsCounted++;
-        if (val >= subj.passing_threshold) subjectsPassed++;
-        else subjectsFailed++;
+          totalPoints += val * subj.coefficient;
+          totalCoefficients += subj.coefficient;
+          subjectsCounted++;
+          if (val >= subj.passing_threshold) subjectsPassed++;
+          else subjectsFailed++;
+        } else {
+          // Deuxième année+ : Calcul sur les matières composées
+          if (!grade || grade.score === null || grade.score === undefined || grade.is_not_available) continue;
+
+          const isAb = grade.is_absent;
+          const val = isAb ? 0 : grade.score;
+
+          totalPoints += val * subj.coefficient;
+          totalCoefficients += subj.coefficient;
+          subjectsCounted++;
+          if (val >= subj.passing_threshold) subjectsPassed++;
+          else subjectsFailed++;
+        }
       }
 
       const weightedAverage = totalCoefficients > 0 ? totalPoints / totalCoefficients : 0;
-      const completionRate = subjects.length > 0 ? Math.round((subjectsCounted / subjects.length) * 100) : 0;
-      const isEligibleForRanking = completionRate >= 80;
+      const completionRate = isFirstYear ? 100 : (subjects.length > 0 ? Math.round((subjectsCounted / subjects.length) * 100) : 0);
+      const isEligibleForRanking = isFirstYear ? true : (completionRate >= 80);
 
       studentResults.push({
         student,

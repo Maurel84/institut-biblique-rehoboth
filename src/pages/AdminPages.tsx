@@ -1750,6 +1750,8 @@ export function DocumentsPage() {
 
     const studentResults: { student: any; name: string; matricule: string; average: number; rowHtml: string }[] = [];
 
+    const isFirstYear = !levelObj || levelObj.order_index === 1 || (levelObj.name || '').toLowerCase().includes('première') || (levelObj.name || '').toLowerCase().includes('1ère') || (levelObj.code || '').toLowerCase().includes('b1');
+
     students.forEach((s, idx) => {
       let totalPoints = 0;
       let totalCoefs = 0;
@@ -1761,20 +1763,29 @@ export function DocumentsPage() {
         const isAb = g?.is_absent;
         const score = g?.score;
 
-        if (g && score !== null && score !== undefined && !isEx) {
-          const scoreVal = isAb ? 0 : score;
-          totalPoints += scoreVal * sub.coefficient;
-          totalCoefs += sub.coefficient;
-          composedCount++;
+        if (isFirstYear) {
+          if (!isEx) {
+            const scoreVal = (g && score !== null && score !== undefined && !isAb) ? score : 0;
+            totalPoints += scoreVal * sub.coefficient;
+            totalCoefs += sub.coefficient;
+            composedCount++;
+          }
+        } else {
+          if (g && score !== null && score !== undefined && !isEx) {
+            const scoreVal = isAb ? 0 : score;
+            totalPoints += scoreVal * sub.coefficient;
+            totalCoefs += sub.coefficient;
+            composedCount++;
+          }
         }
 
-        const displayScore = isEx ? 'DISP' : isAb ? 'ABS' : score !== null && score !== undefined ? score.toString() : '-';
+        const displayScore = isEx ? 'DISP' : isAb ? 'ABS' : score !== null && score !== undefined ? score.toString() : (isFirstYear ? '0' : '-');
         return `<td style="text-align: center; font-size: 11px;">${displayScore}</td>`;
       }).join('');
 
       const avg = totalCoefs > 0 ? (totalPoints / totalCoefs) : 0;
-      const completionRate = subjects.length > 0 ? (composedCount / subjects.length) * 100 : 0;
-      const isEligibleForRanking = completionRate >= 80;
+      const completionRate = isFirstYear ? 100 : (subjects.length > 0 ? (composedCount / subjects.length) * 100 : 0);
+      const isEligibleForRanking = isFirstYear ? true : (completionRate >= 80);
       const sName = fullName(s.last_name, s.first_name);
 
       const rowHtml = `
@@ -1785,7 +1796,7 @@ export function DocumentsPage() {
           ${subjectCells}
           <td style="text-align: center; font-weight: bold; background: #f8fafc; color: #1e40af;">
             ${avg.toFixed(2)}
-            ${completionRate < 80 ? `<br/><span style="font-size: 8px; color: #d97706; font-weight: normal;">(Incomplet)</span>` : ''}
+            ${!isFirstYear && completionRate < 80 ? `<br/><span style="font-size: 8px; color: #d97706; font-weight: normal;">(Incomplet)</span>` : ''}
           </td>
         </tr>
       `;
