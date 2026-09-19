@@ -1753,24 +1753,28 @@ export function DocumentsPage() {
     students.forEach((s, idx) => {
       let totalPoints = 0;
       let totalCoefs = 0;
+      let composedCount = 0;
 
       const subjectCells = subjects.map((sub) => {
         const g = allGrades.find((x) => x.student_id === s.id && x.subject_id === sub.id);
         const isEx = g?.is_exempted;
         const isAb = g?.is_absent;
         const score = g?.score;
-        const scoreVal = isAb ? 0 : (score ?? 0);
 
-        if (!isEx) {
+        if (g && score !== null && score !== undefined && !isEx) {
+          const scoreVal = isAb ? 0 : score;
           totalPoints += scoreVal * sub.coefficient;
           totalCoefs += sub.coefficient;
+          composedCount++;
         }
 
-        const displayScore = isEx ? 'DISP' : isAb ? 'ABS' : score !== null && score !== undefined ? score.toString() : '0';
+        const displayScore = isEx ? 'DISP' : isAb ? 'ABS' : score !== null && score !== undefined ? score.toString() : '-';
         return `<td style="text-align: center; font-size: 11px;">${displayScore}</td>`;
       }).join('');
 
       const avg = totalCoefs > 0 ? (totalPoints / totalCoefs) : 0;
+      const completionRate = subjects.length > 0 ? (composedCount / subjects.length) * 100 : 0;
+      const isEligibleForRanking = completionRate >= 80;
       const sName = fullName(s.last_name, s.first_name);
 
       const rowHtml = `
@@ -1779,7 +1783,10 @@ export function DocumentsPage() {
           <td><strong>${sName}</strong></td>
           <td style="font-family: monospace;">${s.matricule ?? '-'}</td>
           ${subjectCells}
-          <td style="text-align: center; font-weight: bold; background: #f8fafc; color: #1e40af;">${avg.toFixed(2)}</td>
+          <td style="text-align: center; font-weight: bold; background: #f8fafc; color: #1e40af;">
+            ${avg.toFixed(2)}
+            ${completionRate < 80 ? `<br/><span style="font-size: 8px; color: #d97706; font-weight: normal;">(Incomplet)</span>` : ''}
+          </td>
         </tr>
       `;
 
@@ -1788,14 +1795,17 @@ export function DocumentsPage() {
         name: sName,
         matricule: s.matricule,
         average: avg,
+        completionRate,
+        isEligibleForRanking,
         rowHtml
       });
     });
 
     const tableRows = studentResults.map((r) => r.rowHtml).join('');
 
-    // Calculate Top 3 (Podium)
-    const sortedForPodium = [...studentResults].sort((a, b) => b.average - a.average);
+    // Calculate Top 3 (Podium) - Only students eligible with >= 80% composed
+    const eligibleForPodium = studentResults.filter((r) => r.isEligibleForRanking);
+    const sortedForPodium = [...eligibleForPodium].sort((a, b) => b.average - a.average);
     const top1 = sortedForPodium[0];
     const top2 = sortedForPodium[1];
     const top3 = sortedForPodium[2];

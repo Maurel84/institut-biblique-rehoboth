@@ -502,10 +502,10 @@ export function GradesPage() {
 
       for (const sub of subjs) {
         const grade = allGrades?.find((g) => g.student_id === stud.id && g.subject_id === sub.id);
-        if (grade?.is_exempted) continue; // Exempted students don't have this coefficient in denominator
+        if (!grade || grade.score === null || grade.score === undefined || grade.is_exempted || grade.is_not_available) continue;
 
-        const isAb = grade?.is_absent;
-        const val = (grade && grade.score !== null && grade.score !== undefined && !isAb) ? grade.score : 0;
+        const isAb = grade.is_absent;
+        const val = isAb ? 0 : grade.score;
 
         totalPoints += val * sub.coefficient;
         totalCoefs += sub.coefficient;
@@ -518,10 +518,12 @@ export function GradesPage() {
       const weightedAvg = totalCoefs > 0 ? (totalPoints / totalCoefs) : 0;
       const bonusPoints = bonusMap[stud.id] || 0;
       const finalAverage = Math.round((weightedAvg + bonusPoints) * 100) / 100;
+      const completionRate = subjs.length > 0 ? (counted / subjs.length) * 100 : 0;
 
-      // Classify decision draft
+      // Classify decision draft (<80% composed -> dossier_incomplet)
       let draftDecision = 'ajourne';
-      if (finalAverage >= 10 && failed === 0) draftDecision = 'admis';
+      if (completionRate < 80) draftDecision = 'dossier_incomplet';
+      else if (finalAverage >= 10 && failed === 0) draftDecision = 'admis';
       else if (finalAverage >= 10) draftDecision = 'admis_reserve';
       else if (finalAverage >= 8) draftDecision = 'ajourne';
       else draftDecision = 'redoublant';
@@ -1109,10 +1111,10 @@ export function RankingsPage() {
 
       for (const subj of subjects) {
         const grade = grades?.find((g: any) => g.student_id === student.id && g.subject_id === subj.id);
-        if (grade?.is_exempted) continue; // Exempted students don't have this coefficient in denominator
+        if (!grade || grade.score === null || grade.score === undefined || grade.is_exempted || grade.is_not_available) continue;
 
-        const isAb = grade?.is_absent;
-        const val = (grade && grade.score !== null && grade.score !== undefined && !isAb) ? grade.score : 0;
+        const isAb = grade.is_absent;
+        const val = isAb ? 0 : grade.score;
 
         totalPoints += val * subj.coefficient;
         totalCoefficients += subj.coefficient;
@@ -1122,6 +1124,8 @@ export function RankingsPage() {
       }
 
       const weightedAverage = totalCoefficients > 0 ? totalPoints / totalCoefficients : 0;
+      const completionRate = subjects.length > 0 ? Math.round((subjectsCounted / subjects.length) * 100) : 0;
+      const isEligibleForRanking = completionRate >= 80;
 
       studentResults.push({
         student,
@@ -1131,30 +1135,45 @@ export function RankingsPage() {
         subjectsPassed,
         subjectsFailed,
         subjectsCounted,
+        totalSubjectsInLevel: subjects.length,
+        completionRate,
+        isEligibleForRanking,
         passRate: subjectsCounted > 0 ? Math.round((subjectsPassed / subjectsCounted) * 100) : 0,
       });
     }
 
-    // Sort by weighted average descending
-    studentResults.sort((a, b) => b.weightedAverage - a.weightedAverage);
+    // Sort: Eligible students (>=80% composed) first by weighted average descending, then non-eligible
+    studentResults.sort((a, b) => {
+      if (a.isEligibleForRanking !== b.isEligibleForRanking) {
+        return a.isEligibleForRanking ? -1 : 1;
+      }
+      return b.weightedAverage - a.weightedAverage;
+    });
 
-    // Assign ranks (handle ex aequo)
+    // Assign ranks (eligible get numeric rank, non-eligible <80% get '-' and 'dossier_incomplet')
     let rank = 0;
     let prevAvg: number | null = null;
     for (let i = 0; i < studentResults.length; i++) {
-      if (prevAvg === null || studentResults[i].weightedAverage !== prevAvg) {
-        rank = i + 1;
-      }
-      studentResults[i].rank = rank;
-      prevAvg = studentResults[i].weightedAverage;
-    }
+      if (!studentResults[i].isEligibleForRanking) {
+        studentResults[i].rank = '-';
+        studentResults[i].decision = 'dossier_incomplet';
+      } else {
+        if (prevAvg === null || studentResults[i].weightedAverage !== prevAvg) {
+          rank = i + 1;
+        }
+        studentResults[i].rank = rank;
+        prevAvg = studentResults[i].weightedAverage;
 
-    // Determine decision
-    for (const r of studentResults) {
-      if (r.weightedAverage >= 10 && r.subjectsFailed === 0) r.decision = 'admis';
-      else if (r.weightedAverage >= 10) r.decision = 'admis_reserve';
-      else if (r.weightedAverage >= 8) r.decision = 'ajourne';
-      else r.decision = 'redoublant';
+        if (studentResults[i].weightedAverage >= 10 && studentResults[i].subjectsFailed === 0) {
+          studentResults[i].decision = 'admis';
+        } else if (studentResults[i].weightedAverage >= 10) {
+          studentResults[i].decision = 'admis_reserve';
+        } else if (studentResults[i].weightedAverage >= 8) {
+          studentResults[i].decision = 'ajourne';
+        } else {
+          studentResults[i].decision = 'redoublant';
+        }
+      }
     }
 
     setResults(studentResults);
@@ -1208,7 +1227,13 @@ export function RankingsPage() {
                     <td className="px-3 py-2 font-medium text-ibr-700 font-mono">{r.student.matricule ?? '-'}</td>
                     <td className="px-3 py-2 font-semibold text-gray-900">{fullName(r.student.last_name, r.student.first_name)}</td>
                     <td className="px-3 py-2 text-center font-bold">{formatNumber(r.weightedAverage)}/100</td>
-                    <td className="px-3 py-2 text-center">{r.subjectsPassed}/{r.subjectsCounted}</td>
+                    <td className="px-3 py-2 text-center">
+                      <span className="font-semibold">{r.subjectsPassed}/{r.subjectsCounted}</span>
+                      <span className="block text-[10px] text-gray-500">Total: {r.subjectsCounted}/{r.totalSubjectsInLevel} mat.</span>
+                      {r.completionRate < 80 && (
+                        <span className="block text-[10px] text-amber-600 font-bold">({r.completionRate}% - Incomplet)</span>
+                      )}
+                    </td>
                     <td className="px-3 py-2 text-center">{r.passRate}%</td>
                     <td className="px-3 py-2 text-center">
                       <Badge color={decisionColors[r.decision] ?? 'gray'}>
